@@ -11,15 +11,17 @@
     --hay: #e8b54a;
     --fox: #e0662b;
     --cream: #f7ecd6;
-    --muted: #bfae8f;
-    --panel: rgba(30, 24, 19, .76);
+    --muted: #b8ab93;
+    --panel: rgba(16, 18, 26, .78);
     --line: rgba(232, 181, 74, .3);
+    --radar: 150px;
     color-scheme: dark;
   }
+  [hidden] { display: none !important; }
   html, body { height: 100%; }
   body {
     margin: 0;
-    background: #1e1813;
+    background: #0a0d16;
     color: var(--cream);
     font-family: "Chivo", system-ui, -apple-system, "Segoe UI", sans-serif;
     overflow: hidden;
@@ -60,10 +62,22 @@
     position: absolute;
     right: 16px;
     top: calc(env(safe-area-inset-top, 0px) + 14px);
-    width: 150px;
-    height: 150px;
+    width: var(--radar);
+    height: var(--radar);
     border-radius: 50%;
   }
+  #powers {
+    position: absolute;
+    right: 16px;
+    top: calc(env(safe-area-inset-top, 0px) + 24px + var(--radar));
+    display: grid;
+    gap: 6px;
+    width: var(--radar);
+  }
+  .chip { padding: 6px 9px 7px; display: grid; gap: 5px; }
+  .chip b { font: 600 11px/1.1 "Chivo Mono", ui-monospace, monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--hay); }
+  .chip span { display: block; height: 3px; border-radius: 2px; background: rgba(247, 236, 214, .14); overflow: hidden; }
+  .chip span i { display: block; height: 100%; background: var(--hay); transform-origin: left; }
 
   .carry {
     position: absolute;
@@ -72,10 +86,10 @@
     bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
     padding: 9px 14px;
     display: grid;
-    gap: 7px;
+    gap: 8px;
     justify-items: center;
   }
-  .carry-row { display: flex; align-items: center; gap: 12px; }
+  .carry-row { display: flex; align-items: center; gap: 12px; min-height: 20px; }
   #carryPips { display: flex; gap: 6px; }
   #carryPips i {
     width: 15px; height: 19px;
@@ -84,28 +98,38 @@
     border: 1px solid rgba(247, 236, 214, .32);
   }
   #carryPips i.on { background: var(--cream); border-color: var(--cream); }
-  #stamina { width: 132px; height: 4px; border-radius: 2px; background: rgba(247, 236, 214, .14); overflow: hidden; }
+  #shells { display: flex; gap: 5px; }
+  .shell {
+    width: 9px; height: 20px; border-radius: 3px 3px 1px 1px;
+    background: linear-gradient(#c0392b 0 68%, #d4a64a 68%);
+    transition: opacity .12s;
+  }
+  .shell.spent { opacity: .18; }
+  #reload { width: 64px; height: 3px; border-radius: 2px; background: rgba(247, 236, 214, .14); overflow: hidden; visibility: hidden; }
+  #reload.on { visibility: visible; }
+  #reload i { display: block; height: 100%; background: var(--cream); transform-origin: left; }
+  #stamina { width: 150px; height: 4px; border-radius: 2px; background: rgba(247, 236, 214, .14); overflow: hidden; }
   #stamina i { display: block; height: 100%; width: 100%; background: var(--hay); transform-origin: left; }
   #stamina.tired i { background: var(--fox); }
 
   #cross {
     position: fixed; left: 50%; top: 50%;
-    width: 16px; height: 16px; margin: -8px 0 0 -8px;
+    width: 18px; height: 18px; margin: -9px 0 0 -9px;
     pointer-events: none;
   }
   #cross::before, #cross::after {
     content: ""; position: absolute; background: var(--cream);
-    box-shadow: 0 0 0 1px rgba(30, 24, 19, .55);
+    box-shadow: 0 0 0 1px rgba(10, 12, 18, .6);
   }
-  #cross::before { left: 7px; top: 0; width: 2px; height: 16px; }
-  #cross::after { top: 7px; left: 0; height: 2px; width: 16px; }
+  #cross::before { left: 8px; top: 0; width: 2px; height: 18px; }
+  #cross::after { top: 8px; left: 0; height: 2px; width: 18px; }
 
   #toast {
     position: fixed; left: 16px; right: 16px; top: 24%;
     text-align: center;
     font: 400 clamp(18px, 3.4vw, 26px)/1.2 "Alfa Slab One", Georgia, serif;
     color: var(--cream);
-    text-shadow: 0 2px 0 rgba(30, 24, 19, .8), 0 0 18px rgba(30, 24, 19, .6);
+    text-shadow: 0 2px 0 rgba(10, 12, 18, .85), 0 0 18px rgba(10, 12, 18, .7);
     opacity: 0;
     transform: translateY(6px);
     transition: opacity .25s, transform .25s;
@@ -114,23 +138,25 @@
   }
   #toast.show { opacity: 1; transform: none; }
   #toast.bad { color: #ffb48a; }
+  #toast.good { color: #ffd77a; }
 
   /* Overlay card: a feed-sack label */
   #overlay {
     position: fixed; inset: 0;
-    display: grid; place-items: center;
+    display: flex;
     padding: 16px;
-    background: radial-gradient(ellipse at center, rgba(30, 24, 19, .15), rgba(30, 24, 19, .72));
+    background: radial-gradient(ellipse at center, rgba(8, 10, 16, .2), rgba(8, 10, 16, .75));
     overflow: auto;
   }
   .card {
     position: relative;
-    width: min(460px, 100%);
+    margin: auto;
+    width: min(470px, 100%);
     background: var(--paper);
     color: var(--ink);
     border-radius: 4px;
     padding: 26px 26px 22px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .5);
   }
   .card::before {
     content: ""; position: absolute; inset: 8px;
@@ -144,15 +170,23 @@
     margin: 8px 0 12px;
     text-wrap: balance;
   }
-  .lede { font-size: 15px; line-height: 1.5; margin: 0 0 16px; max-width: 60ch; }
-  #ovStats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 16px; }
+  .lede { font-size: 15px; line-height: 1.5; margin: 0 0 14px; max-width: 60ch; }
+  .modes { display: inline-flex; border: 1px solid rgba(34, 28, 23, .35); border-radius: 4px; overflow: hidden; margin: 0 0 14px; position: relative; }
+  .seg {
+    font: 600 12px/1 "Chivo Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase;
+    background: transparent; color: var(--ink); border: 0; padding: 9px 14px; cursor: pointer;
+  }
+  .seg + .seg { border-left: 1px solid rgba(34, 28, 23, .35); }
+  .seg[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .seg:focus-visible { outline: 3px solid var(--hay); outline-offset: -3px; }
+  #ovStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 10px; margin: 0 0 14px; }
   #ovStats div { display: grid; gap: 4px; }
   #ovStats b { font: 400 28px/1 "Alfa Slab One", Georgia, serif; font-variant-numeric: tabular-nums; }
   .keys {
     list-style: none; margin: 0 0 18px; padding: 14px 0 0;
     border-top: 1px solid rgba(34, 28, 23, .18);
     display: grid; grid-template-columns: auto 1fr; gap: 8px 14px;
-    font-size: 13.5px; align-items: center;
+    font-size: 13.5px; line-height: 1.35; align-items: center;
   }
   .keys li { display: contents; }
   .keys span:first-child { display: flex; gap: 4px; flex-wrap: wrap; }
@@ -182,22 +216,27 @@
     position: fixed; width: 112px; height: 112px; margin: -56px 0 0 -56px;
     border-radius: 50%;
     border: 2px solid rgba(247, 236, 214, .35);
-    background: rgba(30, 24, 19, .3);
+    background: rgba(10, 12, 18, .35);
   }
   #joyKnob {
     position: absolute; left: 50%; top: 50%;
     width: 46px; height: 46px; margin: -23px 0 0 -23px;
     border-radius: 50%; background: rgba(247, 236, 214, .7);
   }
-  #shooBtn, #pauseBtn {
+  #fireBtn, #pauseBtn, #torchBtn {
     position: fixed; pointer-events: auto; touch-action: none;
     font-family: "Alfa Slab One", Georgia, serif; color: #fff3dc;
     border: 2px solid rgba(255, 243, 220, .5);
   }
-  #shooBtn {
-    right: 22px; bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
-    width: 86px; height: 86px; border-radius: 50%;
-    background: rgba(158, 43, 37, .88); font-size: 17px;
+  #fireBtn {
+    right: 22px; bottom: calc(env(safe-area-inset-bottom, 0px) + 110px);
+    width: 88px; height: 88px; border-radius: 50%;
+    background: rgba(158, 43, 37, .9); font-size: 18px;
+  }
+  #torchBtn {
+    right: 122px; bottom: calc(env(safe-area-inset-bottom, 0px) + 116px);
+    width: 58px; height: 58px; border-radius: 50%;
+    background: var(--panel); font-size: 12px;
   }
   #pauseBtn {
     left: 50%; transform: translateX(-50%);
@@ -206,11 +245,12 @@
   }
 
   @media (max-width: 600px) {
+    :root { --radar: 112px; }
     .stats { width: 150px; padding: 8px 10px 10px; gap: 5px; }
     .wave b { font-size: 26px; }
     .row b { font-size: 14px; }
-    #radar { width: 112px; height: 112px; }
     .card { padding: 22px 20px 18px; }
+    .chip b { font-size: 10px; }
   }
   @media (prefers-reduced-motion: reduce) {
     #toast { transition: none; }
@@ -224,14 +264,17 @@
     <div class="wave"><span class="lbl">Wave</span><b id="waveN">1</b></div>
     <div class="row"><span class="lbl">Home safe</span><b id="savedN">0</b></div>
     <div class="row"><span class="lbl">Still loose</span><b id="freeN">0</b></div>
+    <div class="row"><span class="lbl">Foxes shot</span><b id="shotN">0</b></div>
     <div>
-      <div class="row"><span class="lbl">Taken by foxes</span><b id="lostN">0/12</b></div>
+      <div class="row"><span class="lbl">Eaten</span><b id="lostN">0/12</b></div>
       <div id="lostPips"></div>
     </div>
   </div>
   <canvas id="radar" aria-label="Farm radar"></canvas>
+  <div id="powers"></div>
   <div class="panel carry">
-    <div class="carry-row"><span class="lbl">Under your arm</span><div id="carryPips"><i></i><i></i><i></i></div></div>
+    <div class="carry-row"><span class="lbl">Under your arm</span><div id="carryPips"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    <div class="carry-row"><span class="lbl">Shells</span><div id="shells"><i class="shell"></i><i class="shell"></i></div><div id="reload"><i></i></div></div>
     <div id="stamina"><i></i></div>
   </div>
   <div id="cross"></div>
@@ -241,17 +284,23 @@
 
 <div id="touchUI" hidden>
   <div id="joyBase" hidden><div id="joyKnob"></div></div>
-  <button id="shooBtn" type="button">Shoo</button>
+  <button id="fireBtn" type="button">Fire</button>
+  <button id="torchBtn" type="button">Torch</button>
   <button id="pauseBtn" type="button">Pause</button>
 </div>
 
 <div id="overlay">
   <div class="card">
-    <span class="lbl" id="ovEyebrow">Hollins Farm · Dusk</span>
+    <span class="lbl" id="ovEyebrow">Hollins Farm · Midnight</span>
     <h1 id="ovTitle">Henhouse<br>Panic</h1>
-    <p class="lede" id="ovLede">The coop latch has given way and the hens are loose across the paddock. Scoop them up and run them home before the foxes get there first. Every wave brings more foxes, and quicker ones.</p>
+    <p class="lede" id="ovLede"></p>
+    <div class="modes" role="group" aria-label="Time of day">
+      <button class="seg" id="modeNight" type="button" aria-pressed="true">Night</button>
+      <button class="seg" id="modeDusk" type="button" aria-pressed="false">Dusk</button>
+    </div>
     <div id="ovStats" hidden>
       <div><span class="lbl">Hens home</span><b id="stSaved">0</b></div>
+      <div><span class="lbl">Foxes shot</span><b id="stFoxes">0</b></div>
       <div><span class="lbl">Wave</span><b id="stWave">1</b></div>
       <div><span class="lbl">Best</span><b id="stBest">0</b></div>
     </div>
@@ -259,15 +308,16 @@
       <li><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>Walk</span></li>
       <li><span><kbd>Mouse</kbd></span><span>Look around</span></li>
       <li><span><kbd>Shift</kbd></span><span>Sprint while your puff lasts</span></li>
-      <li><span><kbd>Click</kbd><kbd>Space</kbd></span><span>Shoo foxes in front of you. A shooed fox drops any hen it has.</span></li>
+      <li><span><kbd>Click</kbd><kbd>Space</kbd></span><span>Fire the shotgun. Two shells, then it reloads itself. With the flamethrower, hold to burn.</span></li>
+      <li><span><kbd>F</kbd></span><span>Torch on or off</span></li>
       <li><span><kbd>Walk into</kbd></span><span>Pick up a hen (three at a time)</span></li>
-      <li><span><kbd>Gold ring</kbd></span><span>Step inside it at the coop to put hens to bed</span></li>
+      <li><span><kbd>Gold ring</kbd></span><span>Step inside one at any of the three coops. Every three hens home earns a power-up, and the first is always a flamethrower.</span></li>
     </ul>
     <ul class="keys" id="keysTouch" hidden>
       <li><span><kbd>Left thumb</kbd></span><span>Walk. Push to the edge to sprint.</span></li>
-      <li><span><kbd>Right thumb</kbd></span><span>Drag to look around</span></li>
-      <li><span><kbd>Shoo</kbd></span><span>Scare off foxes in front of you</span></li>
-      <li><span><kbd>Walk into</kbd></span><span>Pick up a hen, then bring it to the gold ring</span></li>
+      <li><span><kbd>Right thumb</kbd></span><span>Drag to look, tap to fire</span></li>
+      <li><span><kbd>Fire</kbd></span><span>Two shells, then the shotgun reloads itself. Hold it with the flamethrower.</span></li>
+      <li><span><kbd>Walk into</kbd></span><span>Pick up a hen, then bring it to a gold ring. Every three hens home earns a power-up.</span></li>
     </ul>
     <div class="foot">
       <button class="go" id="ovBtn" type="button">Start</button>
@@ -284,8 +334,11 @@
 
   const W = 44;               // half-size of the fenced paddock (metres)
   const LOST_LIMIT = 12;
-  const CARRY_MAX = 3;
+  const BASE_CARRY = 3;
   const DROP_R = 4.6;
+  const SHELLS = 2;
+  const RELOAD_TIME = 1.6;
+  const COOPS = [{ x: 0, z: 0 }, { x: 27, z: 20 }, { x: -27, z: 24 }];
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const rand = (a, b) => a + Math.random() * (b - a);
@@ -295,7 +348,9 @@
     return () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
   }
   const srand = seeded(20261003);
-  const detach = o => { if (o.parent) o.parent.remove(o); };
+  const detach = o => { if (o && o.parent) o.parent.remove(o); };
+  const setShadow = (o, v) => o.traverse(c => { if (c.isMesh) c.castShadow = v; });
+  const nearCoop = (x, z, r) => COOPS.some(c => Math.hypot(x - c.x, z - c.z) < r);
 
   // ---------- Renderer, scene, camera ----------
   const host = $('game');
@@ -306,12 +361,11 @@
   host.appendChild(renderer.domElement);
   const cvs = renderer.domElement;
 
-  const FOG = 0xf1bf88;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(FOG);
-  scene.fog = new THREE.Fog(FOG, 45, 180);
+  scene.background = new THREE.Color(0x0a1020);
+  scene.fog = new THREE.Fog(0x0a1020, 6, 60);
 
-  const camera = new THREE.PerspectiveCamera(72, 1, 0.08, 420);
+  const camera = new THREE.PerspectiveCamera(72, 1, 0.05, 420);
   camera.rotation.order = 'YXZ';
   scene.add(camera);
 
@@ -323,27 +377,41 @@
     sizeRadar();
   }
 
-  // Sky dome with a low sun
-  const sunDir = new THREE.Vector3(-50, 22, -34).normalize();
+  // Sky dome: gradient, sun or moon, stars at night
+  const skyU = {
+    top: { value: new THREE.Color() }, bot: { value: new THREE.Color() }, sun: { value: new THREE.Vector3(0, 1, 0) },
+    glowCol: { value: new THREE.Color() }, discCol: { value: new THREE.Color() }, stars: { value: 0 }
+  };
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(320, 32, 16),
     new THREE.ShaderMaterial({
-      side: THREE.BackSide, depthWrite: false,
-      uniforms: { top: { value: new THREE.Color(0x4f6f9c) }, bot: { value: new THREE.Color(FOG) }, sun: { value: sunDir } },
+      side: THREE.BackSide, depthWrite: false, uniforms: skyU,
       vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
-      fragmentShader: 'uniform vec3 top; uniform vec3 bot; uniform vec3 sun; varying vec3 vP; void main(){ vec3 d = normalize(vP); float h = d.y; vec3 c = mix(bot, top, smoothstep(0.0, 0.55, h)); float s = max(dot(d, sun), 0.0); c += vec3(1.0,0.86,0.62) * pow(s, 900.0) * 1.4 + vec3(1.0,0.62,0.32) * pow(s, 10.0) * 0.28; gl_FragColor = vec4(c, 1.0); }'
+      fragmentShader: [
+        'uniform vec3 top; uniform vec3 bot; uniform vec3 sun; uniform vec3 glowCol; uniform vec3 discCol; uniform float stars; varying vec3 vP;',
+        'void main(){',
+        '  vec3 d = normalize(vP); float h = d.y;',
+        '  vec3 c = mix(bot, top, smoothstep(0.0, 0.55, h));',
+        '  float s = max(dot(d, sun), 0.0);',
+        '  c += discCol * smoothstep(0.9993, 0.9996, s) * 1.2 + glowCol * pow(s, 10.0) * 0.28;',
+        '  vec3 p = floor(d * 260.0);',
+        '  float n = fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453);',
+        '  c += vec3(step(0.9972, n)) * stars * smoothstep(0.02, 0.25, h) * (0.45 + 0.55 * fract(n * 91.0));',
+        '  gl_FragColor = vec4(c, 1.0);',
+        '}'
+      ].join('\n')
     })
   );
   scene.add(sky);
 
-  scene.add(new THREE.HemisphereLight(0xffe6c4, 0x4f5e2c, 0.62));
-  const sun = new THREE.DirectionalLight(0xffc28a, 1.08);
-  sun.position.copy(sunDir).multiplyScalar(80);
-  sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
-  Object.assign(sun.shadow.camera, { left: -62, right: 62, top: 62, bottom: -62, near: 1, far: 220 });
-  sun.shadow.bias = -0.0006;
-  scene.add(sun);
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x000000, 0.5);
+  scene.add(hemi);
+  const keyLight = new THREE.DirectionalLight(0xffffff, 1);
+  keyLight.castShadow = true;
+  keyLight.shadow.mapSize.set(2048, 2048);
+  Object.assign(keyLight.shadow.camera, { left: -62, right: 62, top: 62, bottom: -62, near: 1, far: 220 });
+  keyLight.shadow.bias = -0.0006;
+  scene.add(keyLight);
 
   // ---------- Materials & helpers ----------
   const C = {
@@ -355,7 +423,8 @@
   };
   const mats = {};
   const mat = c => mats[c] || (mats[c] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.92, metalness: 0, flatShading: true }));
-  const glow = c => new THREE.MeshBasicMaterial({ color: c });
+  const glow = c => new THREE.MeshBasicMaterial({ color: c, fog: false });
+  const metal = new THREE.MeshStandardMaterial({ color: 0x2b2e34, roughness: 0.45, metalness: 0.7, flatShading: true });
 
   function box(w, h, d, m, x = 0, y = 0, z = 0) {
     const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
@@ -402,22 +471,27 @@
   }
 
   // ---------- World ----------
+  const lampLights = [];
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), mat(C.grass));
   ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
 
-  const dirt = new THREE.Mesh(new THREE.CircleGeometry(7, 40), mat(C.dirt));
-  dirt.rotation.x = -Math.PI / 2; dirt.position.y = 0.02; dirt.receiveShadow = true; scene.add(dirt);
   {
-    // track from coop to barn door
+    // track from the main coop to the barn door
     const ax = -2, az = -2, bx = -24, bz = -12.5, len = Math.hypot(bx - ax, bz - az);
     const path = new THREE.Mesh(new THREE.PlaneGeometry(2.6, len), mat(C.dirt));
     path.rotation.x = -Math.PI / 2; path.rotation.z = -Math.atan2(bx - ax, bz - az) + Math.PI;
     path.position.set((ax + bx) / 2, 0.015, (az + bz) / 2); path.receiveShadow = true; scene.add(path);
   }
 
-  // Coop
-  {
-    const g = new THREE.Group();
+  // Coops, each with a drop-off ring, a homing beam and a lamp over the door
+  const rings = [], beams = [];
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0xe8b54a, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false, fog: false });
+  const beamMat = new THREE.MeshBasicMaterial({ color: 0xffc85a, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false });
+  function buildCoop(cx, cz) {
+    const dirt = new THREE.Mesh(new THREE.CircleGeometry(7, 40), mat(C.dirt));
+    dirt.rotation.x = -Math.PI / 2; dirt.position.set(cx, 0.02, cz); dirt.receiveShadow = true; scene.add(dirt);
+
+    const g = new THREE.Group(); g.position.set(cx, 0, cz);
     for (const [x, z] of [[-1.6, -1.2], [1.6, -1.2], [-1.6, 1.2], [1.6, 1.2]]) g.add(box(0.2, 0.8, 0.2, mat(C.woodDark), x, 0.4, z));
     g.add(box(3.6, 2, 2.8, mat(C.wood), 0, 1.8, 0));
     for (let i = 0; i < 3; i++) g.add(box(3.64, 0.05, 2.84, mat(C.woodDark), 0, 1.25 + i * 0.55, 0));
@@ -425,18 +499,19 @@
     g.add(box(0.8, 1.0, 0.06, mat(C.black), 0.9, 1.3, 1.42));
     const ramp = box(0.7, 0.06, 1.45, mat(C.woodDark), 0.9, 0.42, 2.02); ramp.rotation.x = 0.59; g.add(ramp);
     const win = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.45), glow(0xffcf6a)); win.position.set(-0.8, 2.05, 1.415); g.add(win);
-    g.add(box(0.9, 0.9, 1.6, mat(C.wood), -2.2, 1.45, 0)); // nest box
+    g.add(box(0.9, 0.9, 1.6, mat(C.wood), -2.2, 1.45, 0));
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), glow(0xffd27a)); bulb.position.set(0.9, 2.55, 1.6); g.add(bulb);
     scene.add(g);
-    boxCols.push({ x: 0, z: 0, hw: 2.7, hd: 1.5 });
-  }
+    const lamp = new THREE.PointLight(0xffc56a, 1.6, 12, 1.6); lamp.position.set(cx + 0.9, 2.5, cz + 2.0);
+    scene.add(lamp); lampLights.push(lamp);
+    boxCols.push({ x: cx, z: cz, hw: 2.7, hd: 1.5 });
 
-  // Drop-off ring and homing beam
-  const dropRing = new THREE.Mesh(new THREE.RingGeometry(DROP_R - 0.32, DROP_R, 64),
-    new THREE.MeshBasicMaterial({ color: 0xe8b54a, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false }));
-  dropRing.rotation.x = -Math.PI / 2; dropRing.position.y = 0.04; scene.add(dropRing);
-  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 40, 20, 1, true),
-    new THREE.MeshBasicMaterial({ color: 0xffc85a, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false }));
-  beam.position.set(0, 20, 0); beam.visible = false; scene.add(beam);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(DROP_R - 0.32, DROP_R, 64), ringMat);
+    ring.rotation.x = -Math.PI / 2; ring.position.set(cx, 0.04, cz); scene.add(ring); rings.push(ring);
+    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 40, 20, 1, true), beamMat);
+    beam.position.set(cx, 20, cz); beam.visible = false; scene.add(beam); beams.push(beam);
+  }
+  COOPS.forEach(c => buildCoop(c.x, c.z));
 
   // Barn
   {
@@ -453,11 +528,12 @@
     for (const s of [-1, 1]) { const x = box(0.2, len, 0.1, trim, 0, 2.2, 6.66); x.rotation.z = s * ang; g.add(x); }
     g.add(box(1.7, 1.5, 0.14, mat(C.barnDoor), 0, 6.6, 6.56));
     g.add(box(2.1, 0.2, 0.2, trim, 0, 7.45, 6.6));
-    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), glow(0xffd27a)); lamp.position.set(0, 5.0, 6.8); g.add(lamp);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), glow(0xffd27a)); bulb.position.set(0, 5.0, 6.8); g.add(bulb);
     scene.add(g);
+    const lamp = new THREE.PointLight(0xffd27a, 1.6, 22, 1.5); lamp.position.set(-24, 4.8, -12.9);
+    scene.add(lamp); lampLights.push(lamp);
     boxCols.push({ x: -24, z: -20, hw: 5.2, hd: 6.7 });
 
-    // Silo
     const silo = new THREE.Group(); silo.position.set(-15.5, 0, -27);
     const body = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 18), mat(C.silo)); body.position.y = 5; body.castShadow = body.receiveShadow = true; silo.add(body);
     const dome = new THREE.Mesh(new THREE.SphereGeometry(2.05, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(C.roof)); dome.position.y = 10; dome.castShadow = true; silo.add(dome);
@@ -485,7 +561,7 @@
   scene.add(box(2.4, 0.05, 0.7, mat(C.water), 9, 0.59, 6));
   boxCols.push({ x: 9, z: 6, hw: 1.3, hd: 0.45 });
 
-  // Fence around the paddock
+  // Fence
   {
     const post = mat(C.woodDark), rail = mat(C.wood);
     for (let i = -W; i <= W; i += 4) {
@@ -508,11 +584,11 @@
   }
   {
     let n = 0, guard = 0;
-    while (n < 13 && guard++ < 500) {
+    while (n < 13 && guard++ < 800) {
       const x = (srand() * 2 - 1) * (W - 4), z = (srand() * 2 - 1) * (W - 4);
-      if (Math.hypot(x, z) < 11) continue;
+      if (nearCoop(x, z, 11)) continue;
       if (x > -34 && x < -10 && z > -32 && z < -6) continue;
-      if (Math.hypot(x - 9, z - 6) < 4) continue;
+      if (Math.hypot(x - 9, z - 6) < 4 || Math.hypot(x + 6, z - 22) < 3) continue;
       tree(x, z, 0.85 + srand() * 0.5, true); n++;
     }
     for (let i = 0; i < 70; i++) {
@@ -549,7 +625,7 @@
     let n = 0;
     while (n < N) {
       const x = (srand() * 2 - 1) * 85, z = (srand() * 2 - 1) * 85;
-      if (Math.hypot(x, z) < 7.5) continue;
+      if (nearCoop(x, z, 7.5)) continue;
       if (Math.abs(x + 24) < 5.6 && Math.abs(z + 20) < 7) continue;
       e.set(0, srand() * 6.28, (srand() - 0.5) * 0.4); q.setFromEuler(e);
       const k = 0.6 + srand() * 0.9; s.set(k, k, k); p.set(x, 0, z);
@@ -579,9 +655,10 @@
       l.add(box(0.1, 0.03, 0.16, mat(C.beak), 0, -0.25, 0.04));
       g.add(l); legs.push(l);
     }
-    return { g, torso, head, legs };
+    return { g, torso, head, legs, brown };
   }
 
+  const eyeMat = glow(0xd9ff6a);
   function makeFox() {
     const g = new THREE.Group(), f = mat(C.fox), w = mat(C.white), d = mat(C.foxDark);
     const torso = new THREE.Group(); g.add(torso);
@@ -592,8 +669,8 @@
     head.add(box(0.44, 0.14, 0.22, w, 0, -0.12, 0.06));
     head.add(box(0.2, 0.16, 0.3, f, 0, -0.06, 0.3));
     head.add(box(0.08, 0.07, 0.06, mat(C.black), 0, -0.01, 0.46));
-    head.add(box(0.44, 0.05, 0.05, mat(C.black), 0, 0.06, 0.16));
     for (const s of [-1, 1]) {
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.06, 0.02), eyeMat); eye.position.set(s * 0.11, 0.07, 0.185); head.add(eye);
       const e = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.24, 4), f);
       e.position.set(s * 0.13, 0.27, -0.04); e.castShadow = true; head.add(e);
     }
@@ -609,44 +686,125 @@
     return { g, torso, head, tail, legs };
   }
 
-  // ---------- Player rig ----------
+  // ---------- Player rig: hens under the left arm, shotgun with a torch on the right ----------
   const player = { pos: new THREE.Vector3(0, 0, 10), vel: new THREE.Vector3(), yaw: 0, pitch: -0.05, stamina: 1, tired: false, bob: 0, carrying: [] };
   const hands = new THREE.Group(); camera.add(hands);
-  const CARRY_SLOTS = [[-0.42, -0.5, -0.85], [-0.18, -0.6, -0.95], [-0.64, -0.62, -1.0]];
+  const CARRY_SLOTS = [[-0.42, -0.5, -0.85], [-0.18, -0.6, -0.95], [-0.64, -0.62, -1.0], [-0.3, -0.36, -1.05], [-0.58, -0.38, -1.1], [-0.82, -0.5, -1.15]];
 
-  const crook = new THREE.Group();
-  {
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 1.3, 6), mat(C.wood)); shaft.position.y = 0.3; crook.add(shaft);
-    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.022, 6, 14, Math.PI), mat(C.wood)); hook.position.set(-0.12, 0.95, 0); crook.add(hook);
+  const gun = new THREE.Group();
+  for (const s of [-1, 1]) {
+    const b = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.75, 10), metal);
+    b.rotation.x = Math.PI / 2; b.position.set(s * 0.028, 0, -0.36); gun.add(b);
   }
-  const CROOK_BASE = { x: 0.55, y: -0.62, z: -0.9, rx: -0.35, rz: 0.28 };
-  crook.position.set(CROOK_BASE.x, CROOK_BASE.y, CROOK_BASE.z);
-  crook.rotation.set(CROOK_BASE.rx, 0, CROOK_BASE.rz);
-  hands.add(crook);
+  gun.add(box(0.11, 0.09, 0.2, metal, 0, -0.01, 0.06));
+  { const stock = box(0.08, 0.13, 0.4, mat(C.wood), 0, -0.07, 0.32); stock.rotation.x = 0.18; gun.add(stock); }
+  gun.add(box(0.09, 0.06, 0.3, mat(C.wood), 0, -0.05, -0.2));
+  { const tb = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.22, 10), metal); tb.rotation.x = Math.PI / 2; tb.position.set(0, -0.09, -0.46); gun.add(tb); }
+  const flash = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34),
+    new THREE.MeshBasicMaterial({ color: 0xffd27a, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, side: THREE.DoubleSide }));
+  flash.position.set(0, 0, -0.8); flash.visible = false; gun.add(flash);
+  // Lights live on the hands (not the gun) so swapping weapons never changes the light count
+  const flashLight = new THREE.PointLight(0xffb860, 0, 18, 2); flashLight.position.set(0.3, -0.3, -1.35); hands.add(flashLight);
+  const GUN_BASE = { x: 0.3, y: -0.3, z: -0.5 };
+  gun.position.set(GUN_BASE.x, GUN_BASE.y, GUN_BASE.z);
+  setShadow(gun, false);
+  hands.add(gun);
+
+  // Flamethrower (power-up): fuel tank, wand and a pilot flame
+  const flamer = new THREE.Group();
+  {
+    const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.42, 12), mat(0xb8321f)); tank.rotation.x = Math.PI / 2; tank.position.set(0, -0.06, 0.02); flamer.add(tank);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 6), mat(0xb8321f)); cap.position.set(0, -0.06, -0.19); flamer.add(cap);
+    const wand = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.03, 0.62, 10), metal); wand.rotation.x = Math.PI / 2; wand.position.set(0, 0.04, -0.4); flamer.add(wand);
+    flamer.add(box(0.05, 0.12, 0.06, metal, 0, -0.02, -0.12));
+    const pilot = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), glow(0x7fb6ff)); pilot.position.set(0, 0.04, -0.73); flamer.add(pilot);
+  }
+  const flamerTip = new THREE.Object3D(); flamerTip.position.set(0, 0.04, -0.76); flamer.add(flamerTip);
+  flamer.position.set(GUN_BASE.x, GUN_BASE.y, GUN_BASE.z);
+  flamer.visible = false;
+  setShadow(flamer, false);
+  hands.add(flamer);
+  const flameLight = new THREE.PointLight(0xff7a2a, 0, 16, 2); flameLight.position.set(0.3, -0.2, -2.2); hands.add(flameLight);
+
+  const torch = new THREE.SpotLight(0xfff0d2, 0, 44, 0.42, 0.5, 1.1);
+  torch.castShadow = true;
+  torch.shadow.mapSize.set(1024, 1024);
+  torch.shadow.camera.near = 0.3; torch.shadow.camera.far = 44;
+  torch.shadow.bias = -0.0008;
+  torch.position.set(0.28, -0.36, -0.6);
+  camera.add(torch);
+  const torchTarget = new THREE.Object3D(); torchTarget.position.set(0.05, -0.5, -8); camera.add(torchTarget);
+  torch.target = torchTarget;
+  let torchOn = true;
+  const TORCH_POWER = 2.6;
+
+  // ---------- Time of day ----------
+  const MODES = {
+    night: { fog: 0x0a1020, near: 6, far: 60, top: 0x02030a, glow: 0x3a4a80, disc: 0xe8ecff, stars: 1, hemi: [0x46598c, 0x0f150c, 0.38], key: [0x9db2ff, 0.38], keyDir: [30, 48, -44], lamp: 1.6, torch: true, place: 'Midnight' },
+    dusk:  { fog: 0xf1bf88, near: 45, far: 180, top: 0x4f6f9c, glow: 0xff9e52, disc: 0xffdc9e, stars: 0, hemi: [0xffe6c4, 0x4f5e2c, 0.62], key: [0xffc28a, 1.08], keyDir: [-50, 22, -34], lamp: 0.25, torch: false, place: 'Dusk' }
+  };
+  let mode = 'night';
+  try { const m = localStorage.getItem('henhouse-panic-mode'); if (m === 'night' || m === 'dusk') mode = m; } catch (e) { /* storage unavailable */ }
+  function applyMode(m) {
+    mode = m;
+    const P = MODES[m];
+    scene.fog.color.setHex(P.fog); scene.fog.near = P.near; scene.fog.far = P.far;
+    scene.background.setHex(P.fog);
+    skyU.top.value.setHex(P.top); skyU.bot.value.setHex(P.fog);
+    skyU.sun.value.set(P.keyDir[0], P.keyDir[1], P.keyDir[2]).normalize();
+    skyU.glowCol.value.setHex(P.glow); skyU.discCol.value.setHex(P.disc); skyU.stars.value = P.stars;
+    hemi.color.setHex(P.hemi[0]); hemi.groundColor.setHex(P.hemi[1]); hemi.intensity = P.hemi[2];
+    keyLight.color.setHex(P.key[0]); keyLight.intensity = P.key[1];
+    keyLight.position.set(P.keyDir[0], P.keyDir[1], P.keyDir[2]).normalize().multiplyScalar(80);
+    for (const l of lampLights) l.intensity = P.lamp;
+    torchOn = P.torch;
+    torch.intensity = torchOn ? TORCH_POWER : 0;
+    $('modeNight').setAttribute('aria-pressed', String(m === 'night'));
+    $('modeDusk').setAttribute('aria-pressed', String(m === 'dusk'));
+    try { localStorage.setItem('henhouse-panic-mode', m); } catch (e) { /* storage unavailable */ }
+  }
+  function toggleTorch() {
+    torchOn = !torchOn;
+    torch.intensity = torchOn ? TORCH_POWER : 0;
+    sfx.click();
+  }
 
   // ---------- Game state ----------
   let state = 'menu';       // menu | playing | paused | over
   let phase = 'wave';       // wave | break
-  let wave = 0, saved = 0, lost = 0, savedWave = 0, lostWave = 0;
-  let breakT = 0, shooCd = 0, swingT = 1, time = 0;
-  let hens = [], foxes = [], puffs = [];
+  let wave = 0, saved = 0, lost = 0, savedWave = 0, lostWave = 0, foxesShot = 0, nextPowerAt = 3;
+  let breakT = 0, time = 0;
+  let shells = SHELLS, reloading = false, reloadT = 0, reloadTotal = RELOAD_TIME, gunCd = 0, recoilT = 1, flashT = 0;
+  let hens = [], foxes = [], fx = [];
   let atRisk = 0;
+
+  const POWERS = {
+    boots:  { name: 'Fast boots', desc: 'Run faster and never get winded', dur: 15 },
+    basket: { name: 'Big basket', desc: 'Carry six hens at once', dur: 25 },
+    musk:   { name: 'Wolf musk', desc: 'Foxes bolt if they come near you', dur: 14 },
+    loader: { name: 'Speed loader', desc: 'Near-instant reloads', dur: 20 },
+    flamer: { name: 'Flamethrower', desc: 'Hold fire to scorch foxes', dur: 12 }
+  };
+  const powers = { boots: 0, basket: 0, musk: 0, loader: 0, flamer: 0 };
+  let powersEarned = 0, triggerHeld = false, flameEmit = 0, flameSoundT = 0;
+  const carryMax = () => BASE_CARRY + (powers.basket > 0 ? 3 : 0);
 
   const foxSpeed = () => Math.min(3.1 + (wave - 1) * 0.48, 8.4);
   const hensForWave = n => Math.min(5 + n * 2, 22);
-  const foxesForWave = n => Math.min(n, 8);
+  const foxesForWave = n => Math.min(n + 1, 10);
 
   let best = { saved: 0, wave: 0 };
   try { const b = JSON.parse(localStorage.getItem('henhouse-panic-best') || 'null'); if (b && typeof b.saved === 'number') best = b; } catch (e) { /* storage unavailable */ }
 
-  function spawnHens(n) {
+  function spawnHens(n, coops = COOPS) {
     for (let i = 0; i < n; i++) {
+      const c = coops[i % coops.length];
       const m = makeHen(Math.random() < 0.35);
       const h = Object.assign(m, {
         pos: m.g.position, heading: rand(-1.4, 1.4), speed: 0, state: 'free',
         wanderT: 0, idle: false, burst: rand(1.2, 3), phase: Math.random() * 10, desired: 0
       });
-      h.pos.set(0.9 + rand(-0.6, 0.6), 0, 3.0 + rand(0, 0.8));
+      h.pos.set(c.x + 0.9 + rand(-0.6, 0.6), 0, c.z + 3.0 + rand(0, 0.8));
       h.desired = h.heading;
       scene.add(h.g);
       hens.push(h);
@@ -657,7 +815,7 @@
     const m = makeFox();
     const f = Object.assign(m, {
       pos: m.g.position, heading: 0, state: 'gone', respawnT: delay, target: null, retarget: 0,
-      prey: null, scared: false, phase: Math.random() * 10, stuck: 0, dodge: 0, dodgeDir: 1, legT: 0
+      meal: null, eatT: 0, featherT: 0, deadT: 0, scared: false, phase: Math.random() * 10, stuck: 0, dodge: 0, dodgeDir: 1, legT: 0
     });
     f.g.visible = false;
     scene.add(f.g);
@@ -668,23 +826,26 @@
     const side = Math.floor(Math.random() * 4), t = rand(-W + 6, W - 6), o = W + 6;
     const xz = [[t, -o], [t, o], [-o, t], [o, t]][side];
     f.pos.set(xz[0], 0, xz[1]);
+    f.g.rotation.set(0, 0, 0);
     f.heading = Math.atan2(-f.pos.x, -f.pos.z);
-    f.state = 'hunt'; f.scared = false; f.prey = null; f.target = null; f.retarget = 0;
+    Object.assign(f, { state: 'hunt', scared: false, meal: null, target: null, retarget: 0 });
     f.g.visible = true;
   }
 
   function resetWorld() {
     for (const h of hens) detach(h.g);
-    for (const f of foxes) detach(f.g);
-    hens = []; foxes = [];
-    for (const p of puffs) detach(p.mesh);
-    puffs = [];
+    for (const f of foxes) { detach(f.g); if (f.meal) detach(f.meal.g); }
+    for (const p of fx) detach(p.mesh);
+    hens = []; foxes = []; fx = [];
     player.carrying = [];
   }
 
   function newGame() {
     resetWorld();
-    wave = 0; saved = 0; lost = 0; phase = 'wave';
+    wave = 0; saved = 0; lost = 0; foxesShot = 0; nextPowerAt = 3; phase = 'wave';
+    shells = SHELLS; reloading = false; gunCd = 0;
+    for (const k in powers) powers[k] = 0;
+    powersEarned = 0; triggerHeld = false;
     Object.assign(player, { yaw: 0, pitch: -0.05, stamina: 1, tired: false, bob: 0 });
     player.pos.set(0, 0, 10); player.vel.set(0, 0, 0);
     state = 'playing';
@@ -702,18 +863,18 @@
     const n = hensForWave(wave);
     spawnHens(n);
     const nf = foxesForWave(wave);
-    foxes.forEach((f, i) => { if (f.state === 'gone') f.respawnT = 3 + i * 2; });
-    while (foxes.length < nf) addFox(3 + foxes.length * 2.2);
+    foxes.forEach((f, i) => { if (f.state === 'gone') f.respawnT = 3 + i * 1.6; });
+    while (foxes.length < nf) addFox(3 + foxes.length * 1.8);
     sfx.cluck();
     toast(wave === 1
-      ? `The coop has burst open. ${n} hens loose, and a fox is coming.`
+      ? `All three coops have burst open. ${n} hens loose, and the foxes are coming.`
       : `Wave ${wave}: ${n} hens loose, ${nf} foxes on the prowl`);
   }
 
   function endWave() {
     phase = 'break'; breakT = 4.5;
     for (const f of foxes) if (f.state === 'hunt') { f.state = 'flee'; f.scared = false; }
-    toast(lostWave === 0 ? `Clean sweep. Every hen home for wave ${wave}.` : `Wave ${wave} done: ${savedWave} home, ${lostWave} taken`);
+    toast(lostWave === 0 ? `Clean sweep. Every hen home for wave ${wave}.` : `Wave ${wave} done: ${savedWave} home, ${lostWave} eaten`, lostWave > 0);
     sfx.chime();
   }
 
@@ -727,6 +888,83 @@
     showOverlay('over');
   }
 
+  function grantPower() {
+    const keys = Object.keys(POWERS);
+    const idle = keys.filter(k => powers[k] <= 0);
+    // The first power-up of every game is the flamethrower; after that it's a random draw
+    const k = powersEarned++ === 0 ? 'flamer' : (idle.length ? idle : keys)[Math.floor(Math.random() * (idle.length || keys.length))];
+    powers[k] = POWERS[k].dur;
+    if (k === 'loader' && reloading) reloadT = Math.min(reloadT, 0.15);
+    return POWERS[k];
+  }
+
+  // ---------- Effects: feathers, fur, smoke, tracers ----------
+  const bitGeo = new THREE.PlaneGeometry(0.14, 0.07);
+  const smokeGeo = new THREE.IcosahedronGeometry(0.3, 0);
+  const bitMats = {};
+  const bitMat = c => bitMats[c] || (bitMats[c] = new THREE.MeshStandardMaterial({ color: c, side: THREE.DoubleSide, roughness: 1 }));
+  function bits(pos, color, n) {
+    for (let i = 0; i < n; i++) {
+      const m = new THREE.Mesh(bitGeo, bitMat(color));
+      m.position.set(pos.x + rand(-0.2, 0.2), 0.5 + rand(0, 0.3), pos.z + rand(-0.2, 0.2));
+      m.rotation.set(rand(0, 6), rand(0, 6), rand(0, 6));
+      scene.add(m);
+      fx.push({ kind: 'bit', mesh: m, t: 0, life: rand(0.9, 1.6), vel: new THREE.Vector3(rand(-2, 2), rand(1.5, 3.5), rand(-2, 2)), spin: rand(-10, 10) });
+    }
+  }
+  function smoke(pos) {
+    for (let i = 0; i < 4; i++) {
+      const m = new THREE.Mesh(smokeGeo, new THREE.MeshBasicMaterial({ color: 0x8a8a8a, transparent: true, opacity: 0.5, depthWrite: false }));
+      m.position.set(pos.x + rand(-0.3, 0.3), 0.5 + rand(0, 0.3), pos.z + rand(-0.3, 0.3));
+      scene.add(m);
+      fx.push({ kind: 'smoke', mesh: m, t: 0, life: 0.9, ownMat: true });
+    }
+  }
+  const tmpV = new THREE.Vector3(), tmpF = new THREE.Vector3();
+  function tracers(fwd) {
+    flash.getWorldPosition(tmpV);
+    for (let i = 0; i < 7; i++) {
+      const dir = fwd.clone().add(new THREE.Vector3(rand(-0.05, 0.05), rand(-0.05, 0.05), rand(-0.05, 0.05))).normalize();
+      const end = tmpV.clone().addScaledVector(dir, rand(18, 30));
+      const geo = new THREE.BufferGeometry().setFromPoints([tmpV.clone().addScaledVector(dir, 0.6), end]);
+      const m = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffe0a0, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, fog: false }));
+      scene.add(m);
+      fx.push({ kind: 'tracer', mesh: m, t: 0, life: 0.07, ownMat: true, ownGeo: true });
+    }
+  }
+  function updateFx(dt) {
+    for (let i = fx.length - 1; i >= 0; i--) {
+      const p = fx[i]; p.t += dt;
+      const k = p.t / p.life;
+      if (p.kind === 'bit') {
+        p.vel.y -= 5 * dt;
+        p.mesh.position.addScaledVector(p.vel, dt);
+        if (p.mesh.position.y < 0.03) { p.mesh.position.y = 0.03; p.vel.set(0, 0, 0); }
+        else { p.mesh.rotation.x += p.spin * dt; p.mesh.rotation.z += p.spin * dt * 0.7; }
+        p.mesh.scale.setScalar(Math.max(0.01, 1 - k * k));
+      } else if (p.kind === 'flame') {
+        p.mesh.position.addScaledVector(p.vel, dt);
+        p.vel.multiplyScalar(1 - dt * 1.6);
+        p.vel.y += dt * 2.5;
+        p.mesh.scale.setScalar(1 + p.t * 7);
+        p.mesh.material.color.setHSL(0.13 - k * 0.12, 1, 0.62 - k * 0.32);
+        p.mesh.material.opacity = 0.9 * (1 - k);
+      } else if (p.kind === 'smoke') {
+        p.mesh.position.y += dt * 0.9;
+        p.mesh.scale.setScalar(1 + p.t * 3);
+        p.mesh.material.opacity = 0.5 * (1 - k);
+      } else {
+        p.mesh.material.opacity = 0.8 * (1 - k);
+      }
+      if (p.t >= p.life) {
+        detach(p.mesh);
+        if (p.ownMat) p.mesh.material.dispose();
+        if (p.ownGeo) p.mesh.geometry.dispose();
+        fx.splice(i, 1);
+      }
+    }
+  }
+
   // ---------- Hens ----------
   function updateHen(h, dt) {
     if (h.state === 'carried') {
@@ -738,7 +976,7 @@
 
     let tx = 0, tz = 0, threat = 0;
     for (const f of foxes) {
-      if (f.state === 'gone') continue;
+      if (f.state === 'gone' || f.state === 'dead') continue;
       const dx = h.pos.x - f.pos.x, dz = h.pos.z - f.pos.z, d = Math.hypot(dx, dz);
       if (d < 10 && d > 0.01) { const w = (10 - d) / 10; tx += dx / d * w * 2; tz += dz / d * w * 2; threat = Math.max(threat, w); }
     }
@@ -791,39 +1029,41 @@
     return player.carrying.length ? 'player' : null;
   }
 
-  function grab(f, h) {
-    h.state = 'grabbed';
-    f.head.add(h.g);
-    h.g.position.set(0, -0.32, 0.42); h.g.rotation.set(0, Math.PI / 2, 0.35); h.g.scale.setScalar(0.8);
-    f.prey = h; f.state = 'flee'; f.scared = false;
-    sfx.squawk();
-  }
-
-  function dropPrey(f) {
-    const h = f.prey; if (!h) return;
-    f.prey = null;
+  // A fox that catches a hen eats it on the spot
+  function catchHen(f, h, msg) {
     scene.add(h.g);
-    h.g.scale.setScalar(1); h.g.rotation.set(0, 0, 0);
-    h.pos.set(f.pos.x, 0, f.pos.z);
-    h.state = 'free'; h.burst = 1.2; h.heading = h.desired = Math.atan2(h.pos.x - player.pos.x, h.pos.z - player.pos.z) + rand(-0.8, 0.8);
+    setShadow(h.g, true);
+    h.state = 'eaten';
+    h.g.scale.setScalar(1);
+    h.g.rotation.set(0, rand(0, 6.28), Math.PI / 2);
+    h.pos.set(f.pos.x + Math.sin(f.heading) * 0.85, 0.22, f.pos.z + Math.cos(f.heading) * 0.85);
+    h.legs[0].rotation.x = h.legs[1].rotation.x = 0;
+    f.state = 'eating'; f.eatT = 2.6; f.featherT = 0; f.meal = h; f.target = null;
+    lost++; lostWave++;
+    bits(h.pos, h.brown ? C.henBrown : C.hen, 14);
+    sfx.squawk(); sfx.loss();
+    toast(msg || `A fox caught a hen (${lost}/${LOST_LIMIT} eaten)`, true);
+    if (lost >= LOST_LIMIT) gameOver();
   }
 
   function scare(f) {
-    if (f.prey) { dropPrey(f); toast('Hen rescued from a fox'); }
+    if (f.state === 'eating') { f.meal = null; }
     f.state = 'flee'; f.scared = true; f.target = null;
   }
 
+  function kill(f) {
+    f.meal = null;
+    f.state = 'dead'; f.deadT = 2.2; f.scared = false;
+    foxesShot++;
+    smoke(f.pos);
+    bits(f.pos, C.fox, 8);
+    sfx.yelp();
+  }
+
   function despawn(f) {
-    if (f.prey) {
-      const h = f.prey; f.prey = null;
-      detach(h.g); h.state = 'eaten';
-      lost++; lostWave++;
-      sfx.loss();
-      toast(`A fox got away with a hen (${lost}/${LOST_LIMIT})`, true);
-    }
     f.state = 'gone'; f.g.visible = false; f.scared = false;
-    f.respawnT = rand(2.5, 5) * Math.max(0.45, 1 - wave * 0.06);
-    if (lost >= LOST_LIMIT) gameOver();
+    f.g.rotation.set(0, 0, 0); f.pos.y = 0;
+    f.respawnT = rand(3, 6) * Math.max(0.4, 1 - wave * 0.06);
   }
 
   function updateFox(f, dt) {
@@ -834,31 +1074,53 @@
       }
       return;
     }
+    if (f.state === 'dead') {
+      f.deadT -= dt;
+      f.g.rotation.z += (Math.PI / 2 - f.g.rotation.z) * Math.min(1, dt * 12);
+      f.pos.y = f.deadT > 0.6 ? 0.2 : 0.2 - (0.6 - f.deadT) * 1.2;
+      if (f.deadT <= 0) despawn(f);
+      return;
+    }
+    if (f.state === 'eating') {
+      f.eatT -= dt; f.featherT -= dt;
+      f.head.rotation.x = 0.6 + Math.sin(time * 16) * 0.25;
+      f.tail.rotation.y = Math.sin(time * 8 + f.phase) * 0.4;
+      for (const l of f.legs) l.rotation.x = 0;
+      if (f.featherT <= 0 && f.meal) { f.featherT = 0.45; bits(f.meal.pos, f.meal.brown ? C.henBrown : C.hen, 2); }
+      if (f.eatT <= 0) {
+        if (f.meal) detach(f.meal.g);
+        f.meal = null;
+        f.state = phase === 'wave' ? 'hunt' : 'flee';
+        f.retarget = 0;
+      }
+      return;
+    }
+
     let spd = foxSpeed(), tx = f.pos.x, tz = f.pos.z, turn = 5;
     const pdx = player.pos.x - f.pos.x, pdz = player.pos.z - f.pos.z, pd = Math.hypot(pdx, pdz);
 
     if (f.state === 'hunt') {
+      if (phase !== 'wave') { f.state = 'flee'; return; }
+      if (powers.musk > 0 && pd < 9 && state === 'playing') { scare(f); return; }
       f.retarget -= dt;
       if (f.retarget <= 0 || (f.target && f.target !== 'player' && f.target.state !== 'free')) { f.retarget = 0.35; f.target = pickTarget(f); }
       const t = f.target;
       if (t === 'player') { tx = player.pos.x; tz = player.pos.z; }
       else if (t) {
         tx = t.pos.x; tz = t.pos.z;
-        if (Math.hypot(tx - f.pos.x, tz - f.pos.z) < 0.75) { grab(f, t); return; }
+        if (Math.hypot(tx - f.pos.x, tz - f.pos.z) < 0.75) { catchHen(f, t); return; }
       } else {
         const a = time * 0.3 + f.phase; tx = player.pos.x + Math.cos(a) * 9; tz = player.pos.z + Math.sin(a) * 9; spd *= 0.6;
       }
       if (pd < 1.15 && player.carrying.length && state === 'playing') {
-        const h = player.carrying.pop();
-        grab(f, h);
-        toast('A fox snatched a hen from your arms', true);
+        catchHen(f, player.carrying.pop(), `A fox snatched a hen from your arms (${lost + 1}/${LOST_LIMIT} eaten)`);
         return;
       }
-    } else { // flee: to the nearest edge, or away from the player if scared
+    } else { // flee: to the nearest edge, or away from the farmer if scared
       const l = Math.hypot(f.pos.x, f.pos.z) || 1;
       let dx = f.pos.x / l, dz = f.pos.z / l;
       if (f.scared) { const pl = pd || 1; dx = dx * 0.5 - pdx / pl; dz = dz * 0.5 - pdz / pl; spd *= 1.45; turn = 8; }
-      else spd *= f.prey ? 0.9 : 1.1;
+      else spd *= 1.1;
       tx = f.pos.x + dx * 10; tz = f.pos.z + dz * 10;
       if (Math.max(Math.abs(f.pos.x), Math.abs(f.pos.z)) > W + 7) { despawn(f); return; }
     }
@@ -886,42 +1148,101 @@
     f.head.rotation.x = f.scared ? -0.25 : 0.08;
   }
 
-  // ---------- Player actions ----------
-  function shoo() {
-    if (state !== 'playing' || shooCd > 0) return;
-    shooCd = 0.55; swingT = 0;
-    const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
-    let hit = 0;
-    for (const f of foxes) {
-      if (f.state === 'gone' || f.scared) continue;
-      const dx = f.pos.x - player.pos.x, dz = f.pos.z - player.pos.z, d = Math.hypot(dx, dz);
-      if (d > 6.5) continue;
-      if (d < 2.2 || (dx * fx + dz * fz) / d > Math.cos(0.95)) { scare(f); hit++; }
+  // ---------- Flamethrower (power-up) ----------
+  const flameGeo = new THREE.IcosahedronGeometry(0.16, 0);
+  function updateFlamer(dt) {
+    const on = powers.flamer > 0;
+    flamer.visible = on; gun.visible = !on;
+    if (!on || !triggerHeld || state !== 'playing') { flameLight.intensity = 0; return; }
+    const fwd = tmpF.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    flamerTip.getWorldPosition(tmpV);
+    flameEmit += dt * 50;
+    while (flameEmit >= 1) {
+      flameEmit--;
+      const m = new THREE.Mesh(flameGeo, new THREE.MeshBasicMaterial({ color: 0xffc040, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+      m.position.copy(tmpV);
+      scene.add(m);
+      const v = fwd.clone().multiplyScalar(rand(12, 16)).add(new THREE.Vector3(rand(-1.4, 1.4), rand(-1, 1.2), rand(-1.4, 1.4)));
+      v.x += player.vel.x; v.z += player.vel.z;
+      fx.push({ kind: 'flame', mesh: m, t: 0, life: rand(0.4, 0.55), vel: v, ownMat: true });
     }
-    puff();
-    sfx.shoo();
-    if (hit) sfx.yelp();
+    flameLight.intensity = 2.6 + Math.random() * 1.4;
+    flameSoundT -= dt;
+    if (flameSoundT <= 0) { flameSoundT = 0.11; noise(0.2, 0.14, 420, 'bandpass', 1.6); }
+
+    // Scorch foxes in a cone in front of the farmer
+    const fx2 = -Math.sin(player.yaw), fz2 = -Math.cos(player.yaw);
+    for (const f of foxes) {
+      if (f.state === 'gone' || f.state === 'dead') continue;
+      const dx = f.pos.x - player.pos.x, dz = f.pos.z - player.pos.z, d = Math.hypot(dx, dz);
+      if (d < 8.5 && (d < 1.4 || (dx * fx2 + dz * fz2) / d > Math.cos(0.4))) {
+        f.burn = (f.burn || 0) + dt;
+        if (f.burn > 0.18) { f.burn = 0; kill(f); bits(f.pos, C.black, 6); }
+      } else if (d < 12 && f.state === 'hunt') scare(f);
+    }
   }
 
-  const puffGeo = new THREE.RingGeometry(0.35, 0.55, 40);
-  function puff() {
-    const m = new THREE.Mesh(puffGeo, new THREE.MeshBasicMaterial({ color: 0xfff3d6, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false, fog: false }));
-    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-    m.position.copy(camera.position).addScaledVector(fwd, 2.0); m.position.y -= 0.25;
-    m.quaternion.copy(camera.quaternion);
-    scene.add(m); puffs.push({ mesh: m, t: 0 });
+  // ---------- Shotgun ----------
+  function fire() {
+    if (state !== 'playing' || gunCd > 0) return;
+    if (powers.flamer > 0) return; // the flamethrower fires while the trigger is held
+    if (reloading || shells <= 0) { sfx.click(); return; }
+    shells--; gunCd = 0.22; recoilT = 0; flashT = 0.07;
+    flash.rotation.z = rand(0, 6.28);
+    player.pitch = Math.min(1.35, player.pitch + 0.035);
+    const o = camera.position;
+    const fwd = tmpF.set(0, 0, -1).applyQuaternion(camera.quaternion).clone();
+    tracers(fwd);
+    sfx.shot();
+    let kills = 0;
+    for (const f of foxes) {
+      if (f.state === 'gone' || f.state === 'dead') continue;
+      const vx = f.pos.x - o.x, vy = 0.55 - o.y, vz = f.pos.z - o.z, d = Math.hypot(vx, vy, vz);
+      if (d > 34) continue;
+      const ang = Math.acos(clamp((vx * fwd.x + vy * fwd.y + vz * fwd.z) / d, -1, 1));
+      if (ang < Math.atan(0.55 / d) + 0.07) { kill(f); kills++; }
+      else if (d < 11) scare(f);
+    }
+    for (const h of hens) {
+      if (h.state !== 'free') continue;
+      const d = Math.hypot(h.pos.x - player.pos.x, h.pos.z - player.pos.z);
+      if (d < 7) { h.burst = 0.8; h.heading = h.desired = Math.atan2(h.pos.x - player.pos.x, h.pos.z - player.pos.z); }
+    }
+    if (kills > 1) toast(`${kills} foxes with one shot`, false, true);
+    if (shells === 0) {
+      reloading = true;
+      reloadTotal = reloadT = powers.loader > 0 ? 0.15 : RELOAD_TIME;
+      setTimeout(() => sfx.reload(), 180);
+    }
   }
 
+  function updateGun(dt) {
+    gunCd = Math.max(0, gunCd - dt);
+    if (reloading) {
+      reloadT -= dt;
+      if (reloadT <= 0) { reloading = false; shells = SHELLS; sfx.clack(); }
+    }
+    let rx = 0, ry = 0, pz = 0, py = 0;
+    if (recoilT < 1) { recoilT = Math.min(1, recoilT + dt / 0.2); const k = (1 - recoilT) ** 2; rx += k * 0.35; pz += k * 0.12; }
+    if (reloading) { const a = Math.sin(clamp(1 - reloadT / reloadTotal, 0, 1) * Math.PI); rx -= a * 0.7; ry += a * 0.3; py -= a * 0.08; }
+    gun.rotation.set(rx, ry, 0);
+    gun.position.set(GUN_BASE.x, GUN_BASE.y + py, GUN_BASE.z + pz);
+    if (flashT > 0) { flashT -= dt; flash.visible = flashT > 0; flashLight.intensity = Math.max(0, flashT / 0.07) * 4; }
+    else { flash.visible = false; flashLight.intensity = 0; }
+  }
+
+  // ---------- Player ----------
   function updatePlayer(dt) {
     let mx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + joy.x;
     let mz = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + joy.y;
     const ml = Math.hypot(mx, mz); if (ml > 1) { mx /= ml; mz /= ml; }
     const moving = ml > 0.05;
+    const boots = powers.boots > 0;
     const wantSprint = (keys.ShiftLeft || keys.ShiftRight || Math.hypot(joy.x, joy.y) > 0.95) && moving;
-    const sprint = wantSprint && !player.tired;
-    if (sprint) { player.stamina -= dt * 0.32; if (player.stamina <= 0) { player.stamina = 0; player.tired = true; } }
-    else { player.stamina = Math.min(1, player.stamina + dt * 0.2); if (player.tired && player.stamina > 0.35) player.tired = false; }
-    const speed = sprint ? 11 : 7;
+    const sprint = wantSprint && (!player.tired || boots);
+    if (sprint && !boots) { player.stamina -= dt * 0.32; if (player.stamina <= 0) { player.stamina = 0; player.tired = true; } }
+    else { player.stamina = Math.min(1, player.stamina + dt * (boots ? 1 : 0.2)); if (player.tired && player.stamina > 0.35) player.tired = false; }
+    const speed = boots ? (sprint ? 14 : 9.5) : (sprint ? 11 : 7);
     const sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
     const vx = (-sy * mz + cy * mx) * speed, vz = (-cy * mz - sy * mx) * speed;
     const k = 1 - Math.exp(-12 * dt);
@@ -938,62 +1259,59 @@
     camera.rotation.set(player.pitch, player.yaw, 0);
 
     // pick up hens
-    if (player.carrying.length < CARRY_MAX) {
+    const max = carryMax();
+    if (player.carrying.length < max) {
       for (const h of hens) {
         if (h.state !== 'free') continue;
         if (Math.hypot(h.pos.x - player.pos.x, h.pos.z - player.pos.z) < 1.5) {
           h.state = 'carried';
           player.carrying.push(h);
           hands.add(h.g);
+          setShadow(h.g, false);
           sfx.cluck();
-          if (player.carrying.length >= CARRY_MAX) break;
+          if (player.carrying.length >= max) break;
         }
       }
     }
     player.carrying.forEach((h, i) => {
       const s = CARRY_SLOTS[i];
-      h.g.position.set(s[0], s[1], s[2]); h.g.rotation.set(0.15, 0.9 - i * 0.3, 0); h.g.scale.setScalar(0.55);
+      h.g.position.set(s[0], s[1], s[2]); h.g.rotation.set(0.15, 0.9 - (i % 3) * 0.3, 0); h.g.scale.setScalar(0.55);
       h.legs[0].rotation.x = h.legs[1].rotation.x = 0.4;
     });
 
-    // drop off at the coop
-    if (player.carrying.length && Math.hypot(player.pos.x, player.pos.z) < DROP_R) {
+    // drop off at any coop
+    if (player.carrying.length && nearCoop(player.pos.x, player.pos.z, DROP_R)) {
       const n = player.carrying.length;
       for (const h of player.carrying) { h.state = 'saved'; detach(h.g); }
       player.carrying = [];
       saved += n; savedWave += n;
-      sfx.chime();
-      toast(n === 1 ? 'One hen home safe' : `${n} hens home safe`);
-    }
-
-    // crook swing
-    shooCd = Math.max(0, shooCd - dt);
-    if (swingT < 1) {
-      swingT = Math.min(1, swingT + dt / 0.32);
-      const a = Math.sin(swingT * Math.PI);
-      crook.rotation.x = CROOK_BASE.rx - a * 1.05;
-      crook.rotation.z = CROOK_BASE.rz + a * 0.7;
-      crook.position.x = CROOK_BASE.x - a * 0.28;
+      const earned = [];
+      while (saved >= nextPowerAt) { earned.push(grantPower()); nextPowerAt += 3; }
+      if (earned.length) {
+        sfx.power();
+        const p = earned[earned.length - 1];
+        toast(`${n === 1 ? 'One hen' : n + ' hens'} home. Power-up: ${p.name}! ${p.desc}.`, false, true);
+      } else {
+        sfx.chime();
+        toast(n === 1 ? 'One hen home safe' : `${n} hens home safe`);
+      }
     }
   }
 
   function update(dt) {
     atRisk = 0;
-    for (const h of hens) if (h.state === 'free' || h.state === 'carried' || h.state === 'grabbed') atRisk++;
+    for (const h of hens) if (h.state === 'free' || h.state === 'carried') atRisk++;
+    for (const k in powers) if (powers[k] > 0) powers[k] = Math.max(0, powers[k] - dt);
     updatePlayer(dt);
+    updateGun(dt);
+    updateFlamer(dt);
     for (const h of hens) updateHen(h, dt);
     for (const f of foxes) { updateFox(f, dt); if (state !== 'playing') return; }
-
-    for (let i = puffs.length - 1; i >= 0; i--) {
-      const p = puffs[i]; p.t += dt;
-      p.mesh.scale.setScalar(1 + p.t * 14);
-      p.mesh.material.opacity = 0.55 * Math.max(0, 1 - p.t / 0.35);
-      if (p.t > 0.35) { detach(p.mesh); p.mesh.material.dispose(); puffs.splice(i, 1); }
-    }
+    updateFx(dt);
 
     const carrying = player.carrying.length > 0;
-    beam.visible = carrying;
-    dropRing.material.opacity = carrying ? 0.55 + Math.sin(time * 6) * 0.25 : 0.32;
+    for (const b of beams) b.visible = carrying;
+    ringMat.opacity = carrying ? 0.55 + Math.sin(time * 6) * 0.25 : 0.32;
 
     if (phase === 'wave' && atRisk === 0 && hens.length) endWave();
     else if (phase === 'break') { breakT -= dt; if (breakT <= 0) startWave(); }
@@ -1013,6 +1331,7 @@
   const lostPips = $('lostPips');
   for (let i = 0; i < LOST_LIMIT; i++) lostPips.appendChild(document.createElement('i'));
   const carryPips = [...$('carryPips').children];
+  const shellEls = [...$('shells').children];
   const hudCache = {};
   function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).textContent = v; } }
   function hud() {
@@ -1020,20 +1339,38 @@
     setText('savedN', String(saved));
     let free = 0; for (const h of hens) if (h.state === 'free') free++;
     setText('freeN', String(free));
+    setText('shotN', String(foxesShot));
     setText('lostN', `${lost}/${LOST_LIMIT}`);
     if (hudCache.lost !== lost) { hudCache.lost = lost; [...lostPips.children].forEach((p, i) => p.classList.toggle('on', i < lost)); }
-    const c = player.carrying.length;
-    if (hudCache.carry !== c) { hudCache.carry = c; carryPips.forEach((p, i) => p.classList.toggle('on', i < c)); }
+    const c = player.carrying.length, max = carryMax(), ck = c + '/' + max;
+    if (hudCache.carry !== ck) { hudCache.carry = ck; carryPips.forEach((p, i) => { p.hidden = i >= Math.max(max, c); p.classList.toggle('on', i < c); }); }
+    const sk = reloading ? -1 : shells;
+    if (hudCache.shells !== sk) { hudCache.shells = sk; shellEls.forEach((s, i) => s.classList.toggle('spent', reloading || i >= shells)); $('reload').classList.toggle('on', reloading); }
+    if (reloading) $('reload').firstChild.style.transform = `scaleX(${clamp(1 - reloadT / reloadTotal, 0, 1).toFixed(3)})`;
     $('stamina').firstChild.style.transform = `scaleX(${player.stamina.toFixed(3)})`;
-    $('stamina').classList.toggle('tired', player.tired);
+    $('stamina').classList.toggle('tired', player.tired && powers.boots <= 0);
+
+    const active = Object.keys(POWERS).filter(k => powers[k] > 0);
+    const sig = active.join(',');
+    const box = $('powers');
+    if (hudCache.powers !== sig) {
+      hudCache.powers = sig;
+      box.innerHTML = active.map(k => `<div class="panel chip" data-k="${k}"><b>${POWERS[k].name}</b><span><i></i></span></div>`).join('');
+    }
+    for (const el of box.children) {
+      const k = el.dataset.k;
+      el.querySelector('i').style.transform = `scaleX(${(powers[k] / POWERS[k].dur).toFixed(3)})`;
+    }
   }
 
   let toastTimer = 0;
-  function toast(msg, bad) {
+  function toast(msg, bad, good) {
     const t = $('toast');
-    t.textContent = msg; t.classList.toggle('bad', !!bad); t.classList.add('show');
+    t.textContent = msg;
+    t.classList.toggle('bad', !!bad); t.classList.toggle('good', !!good);
+    t.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+    toastTimer = setTimeout(() => t.classList.remove('show'), good ? 3400 : 2600);
   }
 
   // Radar
@@ -1053,7 +1390,7 @@
 
     x.clearRect(0, 0, S, S);
     x.save();
-    x.beginPath(); x.arc(R, R, R - 1, 0, Math.PI * 2); x.fillStyle = 'rgba(30,24,19,.8)'; x.fill(); x.clip();
+    x.beginPath(); x.arc(R, R, R - 1, 0, Math.PI * 2); x.fillStyle = 'rgba(16,18,26,.82)'; x.fill(); x.clip();
     x.strokeStyle = 'rgba(247,236,214,.08)'; x.lineWidth = 1;
     for (const r of [10, 20, 30]) { x.beginPath(); x.arc(R, R, r * k, 0, Math.PI * 2); x.stroke(); }
 
@@ -1061,11 +1398,15 @@
     poly([[-W, -W], [W, -W], [W, W], [-W, W]], null, 'rgba(232,181,74,.35)');
     poly([[-29.2, -26.7], [-18.8, -26.7], [-18.8, -13.3], [-29.2, -13.3]], 'rgba(158,43,37,.75)');
 
-    const c = tr(0, 0);
-    x.setLineDash([3, 3]); x.strokeStyle = 'rgba(232,181,74,.8)';
-    x.beginPath(); x.arc(c[0], c[1], DROP_R * k, 0, Math.PI * 2); x.stroke(); x.setLineDash([]);
-    const cr = rim(c, 7);
-    x.fillStyle = '#e8b54a'; x.fillRect(cr[0] - 4, cr[1] - 4, 8, 8);
+    for (const cp of COOPS) {
+      const c = tr(cp.x, cp.z);
+      x.setLineDash([3, 3]); x.strokeStyle = 'rgba(232,181,74,.8)';
+      x.beginPath(); x.arc(c[0], c[1], DROP_R * k, 0, Math.PI * 2); x.stroke(); x.setLineDash([]);
+      const cr = rim(c, 7);
+      x.globalAlpha = cr[2] ? 0.7 : 1;
+      x.fillStyle = '#e8b54a'; x.fillRect(cr[0] - 4, cr[1] - 4, 8, 8);
+      x.globalAlpha = 1;
+    }
 
     x.fillStyle = '#f7ecd6';
     for (const h of hens) {
@@ -1076,14 +1417,14 @@
     }
     x.globalAlpha = 1;
     for (const f of foxes) {
-      if (f.state === 'gone') continue;
+      if (f.state === 'gone' || f.state === 'dead') continue;
       const p = rim(tr(f.pos.x, f.pos.z), 6);
       const a = Math.atan2(Math.sin(f.heading) * cy - Math.cos(f.heading) * sy, Math.sin(f.heading) * sy + Math.cos(f.heading) * cy);
       x.save(); x.translate(p[0], p[1]); x.rotate(-a + Math.PI);
       x.globalAlpha = p[2] ? 0.55 : 1;
       x.fillStyle = f.scared ? '#b98a6a' : '#e0662b';
       x.beginPath(); x.moveTo(0, -6); x.lineTo(4.5, 4.5); x.lineTo(-4.5, 4.5); x.closePath(); x.fill();
-      if (f.prey) { x.fillStyle = '#f7ecd6'; x.beginPath(); x.arc(0, -6, 2.2, 0, Math.PI * 2); x.fill(); }
+      if (f.state === 'eating') { x.fillStyle = '#ff6a4a'; x.beginPath(); x.arc(0, -7, 2.2, 0, Math.PI * 2); x.fill(); }
       x.restore();
     }
     x.fillStyle = '#e8b54a';
@@ -1094,18 +1435,23 @@
 
   // ---------- Overlay ----------
   let overlayMode = 'menu';
-  function showOverlay(mode) {
-    overlayMode = mode;
+  function menuLede() {
+    return mode === 'night'
+      ? 'Midnight, and the coop latches have given way. The hens are loose across the paddock and the foxes can see in the dark far better than you. Grab your torch and shotgun, and carry the hens home to any of the three coops.'
+      : 'Dusk, and the coop latches have given way. The hens are loose across the paddock. Grab your shotgun and carry them home to any of the three coops before the foxes get them.';
+  }
+  function showOverlay(m) {
+    overlayMode = m;
     $('overlay').hidden = false;
-    $('hud').hidden = mode === 'menu';
+    $('hud').hidden = m === 'menu';
     const stats = $('ovStats');
-    if (mode === 'menu') {
-      $('ovEyebrow').textContent = 'Hollins Farm · Dusk';
+    if (m === 'menu') {
+      $('ovEyebrow').textContent = `Hollins Farm · ${MODES[mode].place}`;
       $('ovTitle').innerHTML = 'Henhouse<br>Panic';
-      $('ovLede').textContent = 'The coop latch has given way and the hens are loose across the paddock. Scoop them up and run them home before the foxes get there first. Every wave brings more foxes, and quicker ones.';
+      $('ovLede').textContent = menuLede();
       stats.hidden = true;
       $('ovBtn').textContent = 'Start';
-    } else if (mode === 'paused') {
+    } else if (m === 'paused') {
       $('ovEyebrow').textContent = `Wave ${wave}`;
       $('ovTitle').textContent = 'Paused';
       $('ovLede').textContent = 'Hens and foxes are frozen in place until you come back.';
@@ -1114,19 +1460,29 @@
     } else {
       $('ovEyebrow').textContent = `Ended on wave ${wave}`;
       $('ovTitle').textContent = 'The foxes ate well';
-      $('ovLede').textContent = `You brought ${saved} ${saved === 1 ? 'hen' : 'hens'} home before the foxes carried off ${LOST_LIMIT}.`;
+      $('ovLede').textContent = `You brought ${saved} ${saved === 1 ? 'hen' : 'hens'} home and shot ${foxesShot} ${foxesShot === 1 ? 'fox' : 'foxes'} before the foxes ate ${LOST_LIMIT}.`;
       stats.hidden = false;
       $('ovBtn').textContent = 'Play again';
     }
-    $('stSaved').textContent = saved; $('stWave').textContent = wave; $('stBest').textContent = best.saved;
+    $('stSaved').textContent = saved; $('stFoxes').textContent = foxesShot; $('stWave').textContent = wave; $('stBest').textContent = best.saved;
     $('ovBest').textContent = best.saved ? `Best: ${best.saved} hens home, wave ${best.wave}` : '';
     setTimeout(() => { try { $('ovBtn').focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 30);
   }
+  function setMode(m) {
+    applyMode(m);
+    if (overlayMode === 'menu') {
+      $('ovEyebrow').textContent = `Hollins Farm · ${MODES[mode].place}`;
+      $('ovLede').textContent = menuLede();
+    }
+  }
+  $('modeNight').addEventListener('click', () => setMode('night'));
+  $('modeDusk').addEventListener('click', () => setMode('dusk'));
 
   function pause() {
     if (state !== 'playing') return;
     state = 'paused';
     for (const k in keys) keys[k] = false;
+    triggerHeld = false;
     resetJoy();
     if (document.pointerLockElement) document.exitPointerLock();
     showOverlay('paused');
@@ -1147,12 +1503,13 @@
   addEventListener('keydown', e => {
     keys[e.code] = true;
     if (state === 'playing' && (e.code === 'Space' || e.code.startsWith('Arrow'))) e.preventDefault();
-    if (e.code === 'Space' && !e.repeat) shoo();
+    if (e.code === 'Space' && !e.repeat) { triggerHeld = true; fire(); }
+    if (e.code === 'KeyF' && !e.repeat && state === 'playing') toggleTorch();
     if (e.code === 'KeyM') muted = !muted;
     if ((e.code === 'KeyP' || e.code === 'Escape') && state === 'playing' && !locked) pause();
   });
-  addEventListener('keyup', e => { keys[e.code] = false; });
-  addEventListener('blur', () => { for (const k in keys) keys[k] = false; pause(); });
+  addEventListener('keyup', e => { keys[e.code] = false; if (e.code === 'Space') triggerHeld = false; });
+  addEventListener('blur', () => { for (const k in keys) keys[k] = false; triggerHeld = false; pause(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
   function look(dx, dy, mult = 1) {
@@ -1175,7 +1532,8 @@
 
   cvs.addEventListener('mousedown', e => {
     if (state !== 'playing' || e.button !== 0) return;
-    if (locked) { shoo(); return; }
+    triggerHeld = true;
+    if (locked) { fire(); return; }
     drag = { moved: 0 };
     tryLock();
   });
@@ -1184,9 +1542,9 @@
     if (locked) look(e.movementX || 0, e.movementY || 0);
     else if (drag) { look(e.movementX || 0, e.movementY || 0, 1.4); drag.moved += Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0); }
   });
-  addEventListener('mouseup', () => { if (drag && drag.moved < 6 && state === 'playing' && !locked) shoo(); drag = null; });
+  addEventListener('mouseup', () => { triggerHeld = false; if (drag && drag.moved < 6 && state === 'playing' && !locked) fire(); drag = null; });
 
-  // Touch: left thumb joystick, right thumb look
+  // Touch: left thumb joystick, right thumb look, tap to fire
   const joy = { x: 0, y: 0, id: null, ox: 0, oy: 0 };
   const lookT = { id: null, x: 0, y: 0, moved: 0 };
   const joyBase = $('joyBase'), joyKnob = $('joyKnob');
@@ -1209,6 +1567,7 @@
       joyKnob.style.transform = ''; joyBase.hidden = false;
     } else if (lookT.id === null) {
       lookT.id = e.pointerId; lookT.x = e.clientX; lookT.y = e.clientY; lookT.moved = 0;
+      if (powers.flamer > 0) triggerHeld = true;
     }
   }, { passive: false });
   addEventListener('pointermove', e => {
@@ -1226,11 +1585,14 @@
   const endTouch = e => {
     if (e.pointerType !== 'touch') return;
     if (e.pointerId === joy.id) { joy.id = null; joy.x = joy.y = 0; joyBase.hidden = true; }
-    if (e.pointerId === lookT.id) { if (lookT.moved < 8 && e.type === 'pointerup') shoo(); lookT.id = null; }
+    if (e.pointerId === fireId || e.pointerId === lookT.id) { triggerHeld = false; fireId = null; }
+    if (e.pointerId === lookT.id) { if (lookT.moved < 8 && e.type === 'pointerup') fire(); lookT.id = null; }
   };
   addEventListener('pointerup', endTouch);
   addEventListener('pointercancel', endTouch);
-  $('shooBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); audioOn(); shoo(); });
+  let fireId = null;
+  $('fireBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); audioOn(); fireId = e.pointerId; triggerHeld = true; fire(); });
+  $('torchBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (state === 'playing') toggleTorch(); });
   $('pauseBtn').addEventListener('click', () => pause());
 
   // ---------- Sound ----------
@@ -1246,20 +1608,24 @@
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + 0.03);
   }
-  function noise(dur, vol, freq) {
+  function noise(dur, vol, freq, type = 'bandpass', sweep = 2.5) {
     if (!ac || muted) return;
-    if (!noiseBuf) { noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.5, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    if (!noiseBuf) { noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.6, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
     const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), t = ac.currentTime;
-    s.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(freq * 2.5, t + dur);
+    s.buffer = noiseBuf; f.type = type; f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(freq * sweep, t + dur);
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     s.connect(f); f.connect(g); g.connect(ac.destination); s.start(t); s.stop(t + dur);
   }
   const sfx = {
     cluck() { tone(720, 430, 0.07, 'square', 0.04); tone(680, 400, 0.08, 'square', 0.04, 0.09); },
     chime() { tone(660, 660, 0.15, 'triangle', 0.07); tone(880, 880, 0.18, 'triangle', 0.07, 0.11); tone(1320, 1320, 0.26, 'triangle', 0.05, 0.22); },
-    shoo() { noise(0.22, 0.16, 600); },
+    power() { [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, f, 0.16, 'triangle', 0.07, i * 0.07)); },
+    shot() { noise(0.4, 0.55, 1400, 'lowpass', 0.1); tone(150, 40, 0.28, 'sine', 0.35); },
+    reload() { tone(1800, 1400, 0.03, 'square', 0.04); tone(1500, 1100, 0.03, 'square', 0.04, 0.14); },
+    clack() { tone(900, 500, 0.06, 'square', 0.06); },
+    click() { tone(2400, 2200, 0.02, 'square', 0.03); },
     yelp() { tone(900, 1600, 0.12, 'sawtooth', 0.04); tone(1500, 700, 0.14, 'sawtooth', 0.035, 0.12); },
-    squawk() { tone(1300, 600, 0.18, 'sawtooth', 0.05); },
+    squawk() { tone(1300, 600, 0.18, 'sawtooth', 0.05); tone(1100, 500, 0.15, 'sawtooth', 0.04, 0.16); },
     loss() { tone(320, 140, 0.45, 'triangle', 0.09); }
   };
 
@@ -1277,7 +1643,8 @@
 
   addEventListener('resize', resize);
   resize();
-  spawnHens(8);
+  applyMode(mode);
+  spawnHens(8, [COOPS[0]]);
   for (const h of hens) h.burst = 0;
   showOverlay('menu');
   frame();
