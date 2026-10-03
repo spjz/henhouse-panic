@@ -1,0 +1,1285 @@
+<title>Henhouse Panic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Chivo:wght@400;600&family=Chivo+Mono:wght@500;600&display=swap">
+<style>
+  :root {
+    --ink: #221c17;
+    --paper: #efe2c4;
+    --barn: #9e2b25;
+    --barn-hi: #b3352d;
+    --hay: #e8b54a;
+    --fox: #e0662b;
+    --cream: #f7ecd6;
+    --muted: #bfae8f;
+    --panel: rgba(30, 24, 19, .76);
+    --line: rgba(232, 181, 74, .3);
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: #1e1813;
+    color: var(--cream);
+    font-family: "Chivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #game { position: fixed; inset: 0; }
+  #game canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+
+  .lbl {
+    font: 600 10px/1.2 "Chivo Mono", ui-monospace, Menlo, monospace;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* HUD */
+  #hud { position: fixed; inset: 0; pointer-events: none; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+  .stats {
+    position: absolute;
+    left: 16px;
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    padding: 10px 14px 12px;
+    display: grid;
+    gap: 7px;
+    width: 196px;
+  }
+  .wave { display: flex; align-items: baseline; gap: 10px; }
+  .wave b { font: 400 34px/1 "Alfa Slab One", Georgia, serif; color: var(--hay); }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .row b { font: 600 16px/1 "Chivo Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  #lostPips { display: grid; grid-template-columns: repeat(12, 1fr); gap: 3px; margin-top: 6px; }
+  #lostPips i { height: 9px; border-radius: 2px; background: rgba(247, 236, 214, .16); }
+  #lostPips i.on { background: var(--fox); }
+
+  #radar {
+    position: absolute;
+    right: 16px;
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+  }
+
+  .carry {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    padding: 9px 14px;
+    display: grid;
+    gap: 7px;
+    justify-items: center;
+  }
+  .carry-row { display: flex; align-items: center; gap: 12px; }
+  #carryPips { display: flex; gap: 6px; }
+  #carryPips i {
+    width: 15px; height: 19px;
+    border-radius: 50% 50% 48% 48% / 60% 60% 40% 40%;
+    background: rgba(247, 236, 214, .12);
+    border: 1px solid rgba(247, 236, 214, .32);
+  }
+  #carryPips i.on { background: var(--cream); border-color: var(--cream); }
+  #stamina { width: 132px; height: 4px; border-radius: 2px; background: rgba(247, 236, 214, .14); overflow: hidden; }
+  #stamina i { display: block; height: 100%; width: 100%; background: var(--hay); transform-origin: left; }
+  #stamina.tired i { background: var(--fox); }
+
+  #cross {
+    position: fixed; left: 50%; top: 50%;
+    width: 16px; height: 16px; margin: -8px 0 0 -8px;
+    pointer-events: none;
+  }
+  #cross::before, #cross::after {
+    content: ""; position: absolute; background: var(--cream);
+    box-shadow: 0 0 0 1px rgba(30, 24, 19, .55);
+  }
+  #cross::before { left: 7px; top: 0; width: 2px; height: 16px; }
+  #cross::after { top: 7px; left: 0; height: 2px; width: 16px; }
+
+  #toast {
+    position: fixed; left: 16px; right: 16px; top: 24%;
+    text-align: center;
+    font: 400 clamp(18px, 3.4vw, 26px)/1.2 "Alfa Slab One", Georgia, serif;
+    color: var(--cream);
+    text-shadow: 0 2px 0 rgba(30, 24, 19, .8), 0 0 18px rgba(30, 24, 19, .6);
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity .25s, transform .25s;
+    pointer-events: none;
+    text-wrap: balance;
+  }
+  #toast.show { opacity: 1; transform: none; }
+  #toast.bad { color: #ffb48a; }
+
+  /* Overlay card: a feed-sack label */
+  #overlay {
+    position: fixed; inset: 0;
+    display: grid; place-items: center;
+    padding: 16px;
+    background: radial-gradient(ellipse at center, rgba(30, 24, 19, .15), rgba(30, 24, 19, .72));
+    overflow: auto;
+  }
+  .card {
+    position: relative;
+    width: min(460px, 100%);
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 4px;
+    padding: 26px 26px 22px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .45);
+  }
+  .card::before {
+    content: ""; position: absolute; inset: 8px;
+    border: 2px dashed rgba(158, 43, 37, .35);
+    border-radius: 2px; pointer-events: none;
+  }
+  .card .lbl { color: var(--barn); }
+  .card h1 {
+    font: 400 clamp(40px, 11vw, 60px)/.92 "Alfa Slab One", Georgia, serif;
+    color: var(--barn);
+    margin: 8px 0 12px;
+    text-wrap: balance;
+  }
+  .lede { font-size: 15px; line-height: 1.5; margin: 0 0 16px; max-width: 60ch; }
+  #ovStats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 16px; }
+  #ovStats div { display: grid; gap: 4px; }
+  #ovStats b { font: 400 28px/1 "Alfa Slab One", Georgia, serif; font-variant-numeric: tabular-nums; }
+  .keys {
+    list-style: none; margin: 0 0 18px; padding: 14px 0 0;
+    border-top: 1px solid rgba(34, 28, 23, .18);
+    display: grid; grid-template-columns: auto 1fr; gap: 8px 14px;
+    font-size: 13.5px; align-items: center;
+  }
+  .keys li { display: contents; }
+  .keys span:first-child { display: flex; gap: 4px; flex-wrap: wrap; }
+  kbd {
+    font: 600 11px/1.4 "Chivo Mono", ui-monospace, monospace;
+    background: #fff8e8; color: var(--ink);
+    border: 1px solid rgba(34, 28, 23, .3); border-bottom-width: 2px;
+    border-radius: 3px; padding: 1px 6px; white-space: nowrap;
+  }
+  .foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; }
+  .go {
+    font: 400 18px/1 "Alfa Slab One", Georgia, serif;
+    background: var(--barn); color: #fff3dc;
+    border: 0; border-radius: 3px;
+    padding: 13px 24px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #6b1c18;
+  }
+  .go:hover { background: var(--barn-hi); }
+  .go:active { transform: translateY(2px); box-shadow: 0 1px 0 #6b1c18; }
+  .go:focus-visible { outline: 3px solid var(--hay); outline-offset: 3px; }
+  #ovBest { font: 500 12px/1.4 "Chivo Mono", ui-monospace, monospace; color: rgba(34, 28, 23, .7); }
+
+  /* Touch controls */
+  #touchUI { position: fixed; inset: 0; pointer-events: none; }
+  #joyBase {
+    position: fixed; width: 112px; height: 112px; margin: -56px 0 0 -56px;
+    border-radius: 50%;
+    border: 2px solid rgba(247, 236, 214, .35);
+    background: rgba(30, 24, 19, .3);
+  }
+  #joyKnob {
+    position: absolute; left: 50%; top: 50%;
+    width: 46px; height: 46px; margin: -23px 0 0 -23px;
+    border-radius: 50%; background: rgba(247, 236, 214, .7);
+  }
+  #shooBtn, #pauseBtn {
+    position: fixed; pointer-events: auto; touch-action: none;
+    font-family: "Alfa Slab One", Georgia, serif; color: #fff3dc;
+    border: 2px solid rgba(255, 243, 220, .5);
+  }
+  #shooBtn {
+    right: 22px; bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+    width: 86px; height: 86px; border-radius: 50%;
+    background: rgba(158, 43, 37, .88); font-size: 17px;
+  }
+  #pauseBtn {
+    left: 50%; transform: translateX(-50%);
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    background: var(--panel); border-radius: 4px; padding: 6px 12px; font-size: 13px;
+  }
+
+  @media (max-width: 600px) {
+    .stats { width: 150px; padding: 8px 10px 10px; gap: 5px; }
+    .wave b { font-size: 26px; }
+    .row b { font-size: 14px; }
+    #radar { width: 112px; height: 112px; }
+    .card { padding: 22px 20px 18px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #toast { transition: none; }
+  }
+</style>
+
+<div id="game"></div>
+
+<div id="hud" hidden>
+  <div class="panel stats">
+    <div class="wave"><span class="lbl">Wave</span><b id="waveN">1</b></div>
+    <div class="row"><span class="lbl">Home safe</span><b id="savedN">0</b></div>
+    <div class="row"><span class="lbl">Still loose</span><b id="freeN">0</b></div>
+    <div>
+      <div class="row"><span class="lbl">Taken by foxes</span><b id="lostN">0/12</b></div>
+      <div id="lostPips"></div>
+    </div>
+  </div>
+  <canvas id="radar" aria-label="Farm radar"></canvas>
+  <div class="panel carry">
+    <div class="carry-row"><span class="lbl">Under your arm</span><div id="carryPips"><i></i><i></i><i></i></div></div>
+    <div id="stamina"><i></i></div>
+  </div>
+  <div id="cross"></div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<div id="touchUI" hidden>
+  <div id="joyBase" hidden><div id="joyKnob"></div></div>
+  <button id="shooBtn" type="button">Shoo</button>
+  <button id="pauseBtn" type="button">Pause</button>
+</div>
+
+<div id="overlay">
+  <div class="card">
+    <span class="lbl" id="ovEyebrow">Hollins Farm · Dusk</span>
+    <h1 id="ovTitle">Henhouse<br>Panic</h1>
+    <p class="lede" id="ovLede">The coop latch has given way and the hens are loose across the paddock. Scoop them up and run them home before the foxes get there first. Every wave brings more foxes, and quicker ones.</p>
+    <div id="ovStats" hidden>
+      <div><span class="lbl">Hens home</span><b id="stSaved">0</b></div>
+      <div><span class="lbl">Wave</span><b id="stWave">1</b></div>
+      <div><span class="lbl">Best</span><b id="stBest">0</b></div>
+    </div>
+    <ul class="keys" id="keysDesk">
+      <li><span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>Walk</span></li>
+      <li><span><kbd>Mouse</kbd></span><span>Look around</span></li>
+      <li><span><kbd>Shift</kbd></span><span>Sprint while your puff lasts</span></li>
+      <li><span><kbd>Click</kbd><kbd>Space</kbd></span><span>Shoo foxes in front of you. A shooed fox drops any hen it has.</span></li>
+      <li><span><kbd>Walk into</kbd></span><span>Pick up a hen (three at a time)</span></li>
+      <li><span><kbd>Gold ring</kbd></span><span>Step inside it at the coop to put hens to bed</span></li>
+    </ul>
+    <ul class="keys" id="keysTouch" hidden>
+      <li><span><kbd>Left thumb</kbd></span><span>Walk. Push to the edge to sprint.</span></li>
+      <li><span><kbd>Right thumb</kbd></span><span>Drag to look around</span></li>
+      <li><span><kbd>Shoo</kbd></span><span>Scare off foxes in front of you</span></li>
+      <li><span><kbd>Walk into</kbd></span><span>Pick up a hen, then bring it to the gold ring</span></li>
+    </ul>
+    <div class="foot">
+      <button class="go" id="ovBtn" type="button">Start</button>
+      <span id="ovBest"></span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+
+  const W = 44;               // half-size of the fenced paddock (metres)
+  const LOST_LIMIT = 12;
+  const CARRY_MAX = 3;
+  const DROP_R = 4.6;
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+  const wrap = a => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; };
+  function seeded(s) {
+    return () => { s |= 0; s = (s + 0x6D2B79F5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  const srand = seeded(20261003);
+  const detach = o => { if (o.parent) o.parent.remove(o); };
+
+  // ---------- Renderer, scene, camera ----------
+  const host = $('game');
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  host.appendChild(renderer.domElement);
+  const cvs = renderer.domElement;
+
+  const FOG = 0xf1bf88;
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(FOG);
+  scene.fog = new THREE.Fog(FOG, 45, 180);
+
+  const camera = new THREE.PerspectiveCamera(72, 1, 0.08, 420);
+  camera.rotation.order = 'YXZ';
+  scene.add(camera);
+
+  function resize() {
+    const w = host.clientWidth, h = host.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    sizeRadar();
+  }
+
+  // Sky dome with a low sun
+  const sunDir = new THREE.Vector3(-50, 22, -34).normalize();
+  const sky = new THREE.Mesh(
+    new THREE.SphereGeometry(320, 32, 16),
+    new THREE.ShaderMaterial({
+      side: THREE.BackSide, depthWrite: false,
+      uniforms: { top: { value: new THREE.Color(0x4f6f9c) }, bot: { value: new THREE.Color(FOG) }, sun: { value: sunDir } },
+      vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
+      fragmentShader: 'uniform vec3 top; uniform vec3 bot; uniform vec3 sun; varying vec3 vP; void main(){ vec3 d = normalize(vP); float h = d.y; vec3 c = mix(bot, top, smoothstep(0.0, 0.55, h)); float s = max(dot(d, sun), 0.0); c += vec3(1.0,0.86,0.62) * pow(s, 900.0) * 1.4 + vec3(1.0,0.62,0.32) * pow(s, 10.0) * 0.28; gl_FragColor = vec4(c, 1.0); }'
+    })
+  );
+  scene.add(sky);
+
+  scene.add(new THREE.HemisphereLight(0xffe6c4, 0x4f5e2c, 0.62));
+  const sun = new THREE.DirectionalLight(0xffc28a, 1.08);
+  sun.position.copy(sunDir).multiplyScalar(80);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -62, right: 62, top: 62, bottom: -62, near: 1, far: 220 });
+  sun.shadow.bias = -0.0006;
+  scene.add(sun);
+
+  // ---------- Materials & helpers ----------
+  const C = {
+    grass: 0x6e8c3a, grassDark: 0x587a30, dirt: 0x9b7a4e, barn: 0x9e2b25, barnDoor: 0x7d211c,
+    trim: 0xefe6d2, roof: 0x4a3a33, wood: 0x8a5a35, woodDark: 0x5e3d24, hay: 0xe0b54a,
+    leaf: 0x4f7a35, leaf2: 0x67893a, trunk: 0x6a4a2e, hen: 0xf6f1e6, henBrown: 0xb06a35,
+    comb: 0xd2322b, beak: 0xf0a030, fox: 0xd9662b, foxDark: 0x3a2418, white: 0xf3ede2,
+    black: 0x1b1715, water: 0x5a8db0, stone: 0x8f8a80, silo: 0x8b9aa0, house: 0xe9dcc0
+  };
+  const mats = {};
+  const mat = c => mats[c] || (mats[c] = new THREE.MeshStandardMaterial({ color: c, roughness: 0.92, metalness: 0, flatShading: true }));
+  const glow = c => new THREE.MeshBasicMaterial({ color: c });
+
+  function box(w, h, d, m, x = 0, y = 0, z = 0) {
+    const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+    o.position.set(x, y, z);
+    o.castShadow = true; o.receiveShadow = true;
+    return o;
+  }
+  // Pitched roof (ridge along z) with gable infill
+  function roof(g, w, d, h, y0, roofMat, wallMat, ov = 0.35) {
+    const hw = w / 2, L = Math.hypot(hw, h) + ov, th = Math.atan2(h, hw);
+    for (const s of [-1, 1]) {
+      const p = box(L, 0.18, d + ov * 2, roofMat);
+      p.position.set(s * Math.cos(th) * L / 2, y0 + h - Math.sin(th) * L / 2 + 0.09, 0);
+      p.rotation.z = -s * th;
+      g.add(p);
+    }
+    const sh = new THREE.Shape();
+    sh.moveTo(-hw, 0); sh.lineTo(hw, 0); sh.lineTo(0, h); sh.lineTo(-hw, 0);
+    const geo = new THREE.ExtrudeGeometry(sh, { depth: d, bevelEnabled: false });
+    geo.translate(0, y0, -d / 2);
+    const gm = new THREE.Mesh(geo, wallMat);
+    gm.castShadow = true; gm.receiveShadow = true;
+    g.add(gm);
+  }
+
+  // ---------- Colliders ----------
+  const boxCols = [];    // {x,z,hw,hd}
+  const circleCols = []; // {x,z,r}
+  function collide(p, r) {
+    for (const b of boxCols) {
+      const cx = clamp(p.x, b.x - b.hw, b.x + b.hw), cz = clamp(p.z, b.z - b.hd, b.z + b.hd);
+      const dx = p.x - cx, dz = p.z - cz, d2 = dx * dx + dz * dz;
+      if (d2 >= r * r) continue;
+      if (d2 > 1e-6) { const d = Math.sqrt(d2); p.x = cx + dx / d * r; p.z = cz + dz / d * r; }
+      else {
+        const ox = b.hw - Math.abs(p.x - b.x) + r, oz = b.hd - Math.abs(p.z - b.z) + r;
+        if (ox < oz) p.x += Math.sign(p.x - b.x || 1) * ox; else p.z += Math.sign(p.z - b.z || 1) * oz;
+      }
+    }
+    for (const c of circleCols) {
+      const dx = p.x - c.x, dz = p.z - c.z, rr = r + c.r, d2 = dx * dx + dz * dz;
+      if (d2 < rr * rr && d2 > 1e-6) { const d = Math.sqrt(d2); p.x = c.x + dx / d * rr; p.z = c.z + dz / d * rr; }
+    }
+  }
+
+  // ---------- World ----------
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), mat(C.grass));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
+
+  const dirt = new THREE.Mesh(new THREE.CircleGeometry(7, 40), mat(C.dirt));
+  dirt.rotation.x = -Math.PI / 2; dirt.position.y = 0.02; dirt.receiveShadow = true; scene.add(dirt);
+  {
+    // track from coop to barn door
+    const ax = -2, az = -2, bx = -24, bz = -12.5, len = Math.hypot(bx - ax, bz - az);
+    const path = new THREE.Mesh(new THREE.PlaneGeometry(2.6, len), mat(C.dirt));
+    path.rotation.x = -Math.PI / 2; path.rotation.z = -Math.atan2(bx - ax, bz - az) + Math.PI;
+    path.position.set((ax + bx) / 2, 0.015, (az + bz) / 2); path.receiveShadow = true; scene.add(path);
+  }
+
+  // Coop
+  {
+    const g = new THREE.Group();
+    for (const [x, z] of [[-1.6, -1.2], [1.6, -1.2], [-1.6, 1.2], [1.6, 1.2]]) g.add(box(0.2, 0.8, 0.2, mat(C.woodDark), x, 0.4, z));
+    g.add(box(3.6, 2, 2.8, mat(C.wood), 0, 1.8, 0));
+    for (let i = 0; i < 3; i++) g.add(box(3.64, 0.05, 2.84, mat(C.woodDark), 0, 1.25 + i * 0.55, 0));
+    roof(g, 3.6, 2.8, 1.1, 2.8, mat(C.barn), mat(C.wood));
+    g.add(box(0.8, 1.0, 0.06, mat(C.black), 0.9, 1.3, 1.42));
+    const ramp = box(0.7, 0.06, 1.45, mat(C.woodDark), 0.9, 0.42, 2.02); ramp.rotation.x = 0.59; g.add(ramp);
+    const win = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.45), glow(0xffcf6a)); win.position.set(-0.8, 2.05, 1.415); g.add(win);
+    g.add(box(0.9, 0.9, 1.6, mat(C.wood), -2.2, 1.45, 0)); // nest box
+    scene.add(g);
+    boxCols.push({ x: 0, z: 0, hw: 2.7, hd: 1.5 });
+  }
+
+  // Drop-off ring and homing beam
+  const dropRing = new THREE.Mesh(new THREE.RingGeometry(DROP_R - 0.32, DROP_R, 64),
+    new THREE.MeshBasicMaterial({ color: 0xe8b54a, transparent: true, opacity: 0.5, side: THREE.DoubleSide, depthWrite: false }));
+  dropRing.rotation.x = -Math.PI / 2; dropRing.position.y = 0.04; scene.add(dropRing);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 40, 20, 1, true),
+    new THREE.MeshBasicMaterial({ color: 0xffc85a, transparent: true, opacity: 0.16, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, fog: false }));
+  beam.position.set(0, 20, 0); beam.visible = false; scene.add(beam);
+
+  // Barn
+  {
+    const g = new THREE.Group(); g.position.set(-24, 0, -20);
+    const wall = mat(C.barn), trim = mat(C.trim);
+    g.add(box(10, 5.5, 13, wall, 0, 2.75, 0));
+    roof(g, 10, 13, 3.4, 5.5, mat(C.roof), wall, 0.5);
+    for (const [x, z] of [[-5, 6.5], [5, 6.5], [-5, -6.5], [5, -6.5]]) g.add(box(0.3, 5.5, 0.3, trim, x, 2.75, z));
+    g.add(box(4.2, 4.4, 0.14, mat(C.barnDoor), 0, 2.2, 6.56));
+    g.add(box(4.7, 0.25, 0.2, trim, 0, 4.5, 6.6));
+    g.add(box(0.25, 4.4, 0.2, trim, -2.2, 2.2, 6.6));
+    g.add(box(0.25, 4.4, 0.2, trim, 2.2, 2.2, 6.6));
+    const ang = Math.atan2(4.2, 4.4), len = Math.hypot(4.2, 4.4);
+    for (const s of [-1, 1]) { const x = box(0.2, len, 0.1, trim, 0, 2.2, 6.66); x.rotation.z = s * ang; g.add(x); }
+    g.add(box(1.7, 1.5, 0.14, mat(C.barnDoor), 0, 6.6, 6.56));
+    g.add(box(2.1, 0.2, 0.2, trim, 0, 7.45, 6.6));
+    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 8), glow(0xffd27a)); lamp.position.set(0, 5.0, 6.8); g.add(lamp);
+    scene.add(g);
+    boxCols.push({ x: -24, z: -20, hw: 5.2, hd: 6.7 });
+
+    // Silo
+    const silo = new THREE.Group(); silo.position.set(-15.5, 0, -27);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 10, 18), mat(C.silo)); body.position.y = 5; body.castShadow = body.receiveShadow = true; silo.add(body);
+    const dome = new THREE.Mesh(new THREE.SphereGeometry(2.05, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), mat(C.roof)); dome.position.y = 10; dome.castShadow = true; silo.add(dome);
+    for (let i = 1; i < 5; i++) { const band = new THREE.Mesh(new THREE.CylinderGeometry(2.04, 2.04, 0.12, 18), mat(0x6f7d83)); band.position.y = i * 2; silo.add(band); }
+    scene.add(silo);
+    circleCols.push({ x: -15.5, z: -27, r: 2.1 });
+  }
+
+  // Hay bales
+  {
+    const hay = mat(C.hay);
+    const bale = (x, y, z, ry) => {
+      const b = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 1.3, 14), hay);
+      b.rotation.z = Math.PI / 2; b.rotation.y = ry; b.position.set(x, y, z);
+      b.castShadow = b.receiveShadow = true; scene.add(b);
+    };
+    bale(-15.5, 0.75, -10.5, 0.3); bale(-14.6, 0.75, -9.0, 0.1); bale(-15.1, 2.05, -9.8, 0.2);
+    circleCols.push({ x: -15.5, z: -10.5, r: 0.85 }, { x: -14.6, z: -9.0, r: 0.85 });
+    bale(16, 0.75, -18, 1.2); circleCols.push({ x: 16, z: -18, r: 0.85 });
+    bale(-6, 0.75, 22, 0.7); circleCols.push({ x: -6, z: 22, r: 0.85 });
+  }
+
+  // Water trough
+  scene.add(box(2.6, 0.6, 0.9, mat(C.stone), 9, 0.3, 6));
+  scene.add(box(2.4, 0.05, 0.7, mat(C.water), 9, 0.59, 6));
+  boxCols.push({ x: 9, z: 6, hw: 1.3, hd: 0.45 });
+
+  // Fence around the paddock
+  {
+    const post = mat(C.woodDark), rail = mat(C.wood);
+    for (let i = -W; i <= W; i += 4) {
+      for (const [x, z] of [[i, -W], [i, W], [-W, i], [W, i]]) scene.add(box(0.18, 1.3, 0.18, post, x, 0.65, z));
+    }
+    for (const y of [0.55, 1.05]) {
+      scene.add(box(W * 2, 0.1, 0.06, rail, 0, y, -W)); scene.add(box(W * 2, 0.1, 0.06, rail, 0, y, W));
+      scene.add(box(0.06, 0.1, W * 2, rail, -W, y, 0)); scene.add(box(0.06, 0.1, W * 2, rail, W, y, 0));
+    }
+  }
+
+  // Trees
+  function tree(x, z, k, solid) {
+    const g = new THREE.Group(); g.position.set(x, 0, z); g.scale.setScalar(k); g.rotation.y = srand() * 6.28;
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.34, 2.4, 6), mat(C.trunk)); t.position.y = 1.2; t.castShadow = true; g.add(t);
+    const a = new THREE.Mesh(new THREE.IcosahedronGeometry(1.8, 0), mat(srand() < 0.5 ? C.leaf : C.leaf2)); a.position.y = 3.4; a.castShadow = a.receiveShadow = true; g.add(a);
+    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2, 0), mat(C.leaf2)); b.position.set(0.5, 4.6, 0.2); b.castShadow = true; g.add(b);
+    scene.add(g);
+    if (solid) circleCols.push({ x, z, r: 0.45 * k });
+  }
+  {
+    let n = 0, guard = 0;
+    while (n < 13 && guard++ < 500) {
+      const x = (srand() * 2 - 1) * (W - 4), z = (srand() * 2 - 1) * (W - 4);
+      if (Math.hypot(x, z) < 11) continue;
+      if (x > -34 && x < -10 && z > -32 && z < -6) continue;
+      if (Math.hypot(x - 9, z - 6) < 4) continue;
+      tree(x, z, 0.85 + srand() * 0.5, true); n++;
+    }
+    for (let i = 0; i < 70; i++) {
+      const a = srand() * Math.PI * 2, r = W + 5 + srand() * 45;
+      tree(Math.cos(a) * r * 1.05, Math.sin(a) * r, 0.9 + srand() * 0.8, false);
+    }
+  }
+
+  // Farmhouse beyond the fence, lights on
+  {
+    const g = new THREE.Group(); g.position.set(22, 0, -64); g.rotation.y = 0.25;
+    g.add(box(9, 5, 7, mat(C.house), 0, 2.5, 0));
+    roof(g, 9, 7, 2.8, 5, mat(C.roof), mat(C.house));
+    for (const x of [-2.6, 2.6]) for (const y of [1.6, 3.6]) {
+      const w = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), glow(0xffcf6a)); w.position.set(x, y, 3.51); g.add(w);
+    }
+    g.add(box(0.6, 1.6, 0.6, mat(0x7a6a60), 2.8, 7, -1));
+    scene.add(g);
+  }
+
+  // Distant hills
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * Math.PI * 2 + 0.3, r = 165;
+    const h = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), mat(i % 2 ? 0x7d9450 : 0x6d8a48));
+    h.scale.set(55 + srand() * 35, 14 + srand() * 14, 40); h.position.set(Math.cos(a) * r, -4, Math.sin(a) * r); h.rotation.y = -a;
+    scene.add(h);
+  }
+
+  // Grass tufts
+  {
+    const geo = new THREE.ConeGeometry(0.09, 0.38, 3); geo.translate(0, 0.19, 0);
+    const N = 1600, inst = new THREE.InstancedMesh(geo, mat(C.grassDark), N);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), e = new THREE.Euler();
+    let n = 0;
+    while (n < N) {
+      const x = (srand() * 2 - 1) * 85, z = (srand() * 2 - 1) * 85;
+      if (Math.hypot(x, z) < 7.5) continue;
+      if (Math.abs(x + 24) < 5.6 && Math.abs(z + 20) < 7) continue;
+      e.set(0, srand() * 6.28, (srand() - 0.5) * 0.4); q.setFromEuler(e);
+      const k = 0.6 + srand() * 0.9; s.set(k, k, k); p.set(x, 0, z);
+      m4.compose(p, q, s); inst.setMatrixAt(n++, m4);
+    }
+    inst.receiveShadow = true; scene.add(inst);
+  }
+
+  // ---------- Creatures ----------
+  function makeHen(brown) {
+    const g = new THREE.Group(), body = mat(brown ? C.henBrown : C.hen);
+    const torso = new THREE.Group(); g.add(torso);
+    torso.add(box(0.46, 0.4, 0.6, body, 0, 0.45, 0));
+    const head = new THREE.Group(); head.position.set(0, 0.72, 0.24); torso.add(head);
+    head.add(box(0.26, 0.28, 0.26, body, 0, 0.06, 0));
+    head.add(box(0.1, 0.07, 0.14, mat(C.beak), 0, 0.04, 0.18));
+    head.add(box(0.06, 0.12, 0.18, mat(C.comb), 0, 0.25, 0));
+    head.add(box(0.06, 0.1, 0.06, mat(C.comb), 0, -0.08, 0.13));
+    head.add(box(0.27, 0.05, 0.05, mat(C.black), 0, 0.1, 0.08));
+    const tail = box(0.3, 0.32, 0.16, body, 0, 0.66, -0.32); tail.rotation.x = -0.5; torso.add(tail);
+    torso.add(box(0.06, 0.26, 0.4, body, 0.25, 0.46, 0));
+    torso.add(box(0.06, 0.26, 0.4, body, -0.25, 0.46, 0));
+    const legs = [];
+    for (const s of [-1, 1]) {
+      const l = new THREE.Group(); l.position.set(s * 0.1, 0.26, 0);
+      l.add(box(0.05, 0.26, 0.05, mat(C.beak), 0, -0.13, 0));
+      l.add(box(0.1, 0.03, 0.16, mat(C.beak), 0, -0.25, 0.04));
+      g.add(l); legs.push(l);
+    }
+    return { g, torso, head, legs };
+  }
+
+  function makeFox() {
+    const g = new THREE.Group(), f = mat(C.fox), w = mat(C.white), d = mat(C.foxDark);
+    const torso = new THREE.Group(); g.add(torso);
+    torso.add(box(0.42, 0.38, 1.0, f, 0, 0.62, 0));
+    torso.add(box(0.32, 0.3, 0.32, w, 0, 0.55, 0.42));
+    const head = new THREE.Group(); head.position.set(0, 0.86, 0.62); torso.add(head);
+    head.add(box(0.42, 0.34, 0.36, f, 0, 0, 0));
+    head.add(box(0.44, 0.14, 0.22, w, 0, -0.12, 0.06));
+    head.add(box(0.2, 0.16, 0.3, f, 0, -0.06, 0.3));
+    head.add(box(0.08, 0.07, 0.06, mat(C.black), 0, -0.01, 0.46));
+    head.add(box(0.44, 0.05, 0.05, mat(C.black), 0, 0.06, 0.16));
+    for (const s of [-1, 1]) {
+      const e = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.24, 4), f);
+      e.position.set(s * 0.13, 0.27, -0.04); e.castShadow = true; head.add(e);
+    }
+    const tail = new THREE.Group(); tail.position.set(0, 0.68, -0.5); tail.rotation.x = -0.45; torso.add(tail);
+    tail.add(box(0.22, 0.22, 0.7, f, 0, 0, -0.35));
+    tail.add(box(0.23, 0.23, 0.2, w, 0, 0, -0.78));
+    const legs = [];
+    for (const [x, z] of [[-0.13, 0.36], [0.13, 0.36], [-0.13, -0.36], [0.13, -0.36]]) {
+      const l = new THREE.Group(); l.position.set(x, 0.46, z);
+      l.add(box(0.1, 0.46, 0.1, d, 0, -0.23, 0));
+      g.add(l); legs.push(l);
+    }
+    return { g, torso, head, tail, legs };
+  }
+
+  // ---------- Player rig ----------
+  const player = { pos: new THREE.Vector3(0, 0, 10), vel: new THREE.Vector3(), yaw: 0, pitch: -0.05, stamina: 1, tired: false, bob: 0, carrying: [] };
+  const hands = new THREE.Group(); camera.add(hands);
+  const CARRY_SLOTS = [[-0.42, -0.5, -0.85], [-0.18, -0.6, -0.95], [-0.64, -0.62, -1.0]];
+
+  const crook = new THREE.Group();
+  {
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 1.3, 6), mat(C.wood)); shaft.position.y = 0.3; crook.add(shaft);
+    const hook = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.022, 6, 14, Math.PI), mat(C.wood)); hook.position.set(-0.12, 0.95, 0); crook.add(hook);
+  }
+  const CROOK_BASE = { x: 0.55, y: -0.62, z: -0.9, rx: -0.35, rz: 0.28 };
+  crook.position.set(CROOK_BASE.x, CROOK_BASE.y, CROOK_BASE.z);
+  crook.rotation.set(CROOK_BASE.rx, 0, CROOK_BASE.rz);
+  hands.add(crook);
+
+  // ---------- Game state ----------
+  let state = 'menu';       // menu | playing | paused | over
+  let phase = 'wave';       // wave | break
+  let wave = 0, saved = 0, lost = 0, savedWave = 0, lostWave = 0;
+  let breakT = 0, shooCd = 0, swingT = 1, time = 0;
+  let hens = [], foxes = [], puffs = [];
+  let atRisk = 0;
+
+  const foxSpeed = () => Math.min(3.1 + (wave - 1) * 0.48, 8.4);
+  const hensForWave = n => Math.min(5 + n * 2, 22);
+  const foxesForWave = n => Math.min(n, 8);
+
+  let best = { saved: 0, wave: 0 };
+  try { const b = JSON.parse(localStorage.getItem('henhouse-panic-best') || 'null'); if (b && typeof b.saved === 'number') best = b; } catch (e) { /* storage unavailable */ }
+
+  function spawnHens(n) {
+    for (let i = 0; i < n; i++) {
+      const m = makeHen(Math.random() < 0.35);
+      const h = Object.assign(m, {
+        pos: m.g.position, heading: rand(-1.4, 1.4), speed: 0, state: 'free',
+        wanderT: 0, idle: false, burst: rand(1.2, 3), phase: Math.random() * 10, desired: 0
+      });
+      h.pos.set(0.9 + rand(-0.6, 0.6), 0, 3.0 + rand(0, 0.8));
+      h.desired = h.heading;
+      scene.add(h.g);
+      hens.push(h);
+    }
+  }
+
+  function addFox(delay) {
+    const m = makeFox();
+    const f = Object.assign(m, {
+      pos: m.g.position, heading: 0, state: 'gone', respawnT: delay, target: null, retarget: 0,
+      prey: null, scared: false, phase: Math.random() * 10, stuck: 0, dodge: 0, dodgeDir: 1, legT: 0
+    });
+    f.g.visible = false;
+    scene.add(f.g);
+    foxes.push(f);
+  }
+
+  function spawnFox(f) {
+    const side = Math.floor(Math.random() * 4), t = rand(-W + 6, W - 6), o = W + 6;
+    const xz = [[t, -o], [t, o], [-o, t], [o, t]][side];
+    f.pos.set(xz[0], 0, xz[1]);
+    f.heading = Math.atan2(-f.pos.x, -f.pos.z);
+    f.state = 'hunt'; f.scared = false; f.prey = null; f.target = null; f.retarget = 0;
+    f.g.visible = true;
+  }
+
+  function resetWorld() {
+    for (const h of hens) detach(h.g);
+    for (const f of foxes) detach(f.g);
+    hens = []; foxes = [];
+    for (const p of puffs) detach(p.mesh);
+    puffs = [];
+    player.carrying = [];
+  }
+
+  function newGame() {
+    resetWorld();
+    wave = 0; saved = 0; lost = 0; phase = 'wave';
+    Object.assign(player, { yaw: 0, pitch: -0.05, stamina: 1, tired: false, bob: 0 });
+    player.pos.set(0, 0, 10); player.vel.set(0, 0, 0);
+    state = 'playing';
+    $('overlay').hidden = true; $('hud').hidden = false;
+    clock.getDelta();
+    startWave();
+    tryLock();
+  }
+
+  function startWave() {
+    wave++;
+    savedWave = 0; lostWave = 0; phase = 'wave';
+    for (const h of hens) if (h.state === 'saved' || h.state === 'eaten') detach(h.g);
+    hens = hens.filter(h => h.state !== 'saved' && h.state !== 'eaten');
+    const n = hensForWave(wave);
+    spawnHens(n);
+    const nf = foxesForWave(wave);
+    foxes.forEach((f, i) => { if (f.state === 'gone') f.respawnT = 3 + i * 2; });
+    while (foxes.length < nf) addFox(3 + foxes.length * 2.2);
+    sfx.cluck();
+    toast(wave === 1
+      ? `The coop has burst open. ${n} hens loose, and a fox is coming.`
+      : `Wave ${wave}: ${n} hens loose, ${nf} foxes on the prowl`);
+  }
+
+  function endWave() {
+    phase = 'break'; breakT = 4.5;
+    for (const f of foxes) if (f.state === 'hunt') { f.state = 'flee'; f.scared = false; }
+    toast(lostWave === 0 ? `Clean sweep. Every hen home for wave ${wave}.` : `Wave ${wave} done: ${savedWave} home, ${lostWave} taken`);
+    sfx.chime();
+  }
+
+  function gameOver() {
+    state = 'over';
+    if (saved > best.saved) {
+      best = { saved, wave };
+      try { localStorage.setItem('henhouse-panic-best', JSON.stringify(best)); } catch (e) { /* storage unavailable */ }
+    }
+    if (document.pointerLockElement) document.exitPointerLock();
+    showOverlay('over');
+  }
+
+  // ---------- Hens ----------
+  function updateHen(h, dt) {
+    if (h.state === 'carried') {
+      h.torso.rotation.z = Math.sin(time * 9 + h.phase) * 0.06;
+      h.head.rotation.x = Math.sin(time * 3 + h.phase) * 0.25;
+      return;
+    }
+    if (h.state !== 'free') return;
+
+    let tx = 0, tz = 0, threat = 0;
+    for (const f of foxes) {
+      if (f.state === 'gone') continue;
+      const dx = h.pos.x - f.pos.x, dz = h.pos.z - f.pos.z, d = Math.hypot(dx, dz);
+      if (d < 10 && d > 0.01) { const w = (10 - d) / 10; tx += dx / d * w * 2; tz += dz / d * w * 2; threat = Math.max(threat, w); }
+    }
+    if (state === 'playing') {
+      const dx = h.pos.x - player.pos.x, dz = h.pos.z - player.pos.z, d = Math.hypot(dx, dz);
+      if (d < 4.5 && d > 0.01) { const w = (4.5 - d) / 4.5 * 0.7; tx += dx / d * w; tz += dz / d * w; threat = Math.max(threat, w * 0.7); }
+    }
+
+    let target = 0;
+    if (h.burst > 0) {
+      h.burst -= dt; target = 4;
+    } else if (threat > 0.05) {
+      h.desired = Math.atan2(tx, tz) + Math.sin(time * 5 + h.phase) * 0.35;
+      target = Math.min(3.4 + threat * 1.6, 4.6); h.idle = false;
+    } else {
+      h.wanderT -= dt;
+      if (h.wanderT <= 0) { h.wanderT = rand(1, 3.4); h.desired = h.heading + rand(-1.6, 1.6); h.idle = Math.random() < 0.4; }
+      target = h.idle ? 0 : 1.3;
+    }
+    const lim = W - 3;
+    if (Math.abs(h.pos.x) > lim || Math.abs(h.pos.z) > lim) {
+      const home = Math.atan2(-h.pos.x, -h.pos.z);
+      h.desired = threat > 0.05 ? h.desired + wrap(home - h.desired) * 0.5 : home;
+    }
+    h.heading += clamp(wrap(h.desired - h.heading), -7 * dt, 7 * dt);
+    h.speed += (target - h.speed) * Math.min(1, dt * 6);
+    h.pos.x += Math.sin(h.heading) * h.speed * dt;
+    h.pos.z += Math.cos(h.heading) * h.speed * dt;
+    collide(h.pos, 0.32);
+    h.pos.x = clamp(h.pos.x, -W + 0.8, W - 0.8);
+    h.pos.z = clamp(h.pos.z, -W + 0.8, W - 0.8);
+    h.g.rotation.y = h.heading;
+
+    const step = time * (6 + h.speed * 4) + h.phase, moving = Math.min(h.speed / 2, 1);
+    h.legs[0].rotation.x = Math.sin(step) * 0.7 * moving;
+    h.legs[1].rotation.x = -Math.sin(step) * 0.7 * moving;
+    h.torso.position.y = Math.abs(Math.sin(step)) * 0.07 * moving;
+    h.head.rotation.x = h.idle && h.speed < 0.2 ? (Math.sin(time * 5 + h.phase) > 0.55 ? 0.9 : 0.1) : 0;
+  }
+
+  // ---------- Foxes ----------
+  function pickTarget(f) {
+    let bestH = null, bd = Infinity;
+    for (const h of hens) {
+      if (h.state !== 'free') continue;
+      const d = (h.pos.x - f.pos.x) ** 2 + (h.pos.z - f.pos.z) ** 2;
+      if (d < bd) { bd = d; bestH = h; }
+    }
+    if (bestH) return bestH;
+    return player.carrying.length ? 'player' : null;
+  }
+
+  function grab(f, h) {
+    h.state = 'grabbed';
+    f.head.add(h.g);
+    h.g.position.set(0, -0.32, 0.42); h.g.rotation.set(0, Math.PI / 2, 0.35); h.g.scale.setScalar(0.8);
+    f.prey = h; f.state = 'flee'; f.scared = false;
+    sfx.squawk();
+  }
+
+  function dropPrey(f) {
+    const h = f.prey; if (!h) return;
+    f.prey = null;
+    scene.add(h.g);
+    h.g.scale.setScalar(1); h.g.rotation.set(0, 0, 0);
+    h.pos.set(f.pos.x, 0, f.pos.z);
+    h.state = 'free'; h.burst = 1.2; h.heading = h.desired = Math.atan2(h.pos.x - player.pos.x, h.pos.z - player.pos.z) + rand(-0.8, 0.8);
+  }
+
+  function scare(f) {
+    if (f.prey) { dropPrey(f); toast('Hen rescued from a fox'); }
+    f.state = 'flee'; f.scared = true; f.target = null;
+  }
+
+  function despawn(f) {
+    if (f.prey) {
+      const h = f.prey; f.prey = null;
+      detach(h.g); h.state = 'eaten';
+      lost++; lostWave++;
+      sfx.loss();
+      toast(`A fox got away with a hen (${lost}/${LOST_LIMIT})`, true);
+    }
+    f.state = 'gone'; f.g.visible = false; f.scared = false;
+    f.respawnT = rand(2.5, 5) * Math.max(0.45, 1 - wave * 0.06);
+    if (lost >= LOST_LIMIT) gameOver();
+  }
+
+  function updateFox(f, dt) {
+    if (f.state === 'gone') {
+      if (state === 'playing' && phase === 'wave' && atRisk > 0) {
+        f.respawnT -= dt;
+        if (f.respawnT <= 0) spawnFox(f);
+      }
+      return;
+    }
+    let spd = foxSpeed(), tx = f.pos.x, tz = f.pos.z, turn = 5;
+    const pdx = player.pos.x - f.pos.x, pdz = player.pos.z - f.pos.z, pd = Math.hypot(pdx, pdz);
+
+    if (f.state === 'hunt') {
+      f.retarget -= dt;
+      if (f.retarget <= 0 || (f.target && f.target !== 'player' && f.target.state !== 'free')) { f.retarget = 0.35; f.target = pickTarget(f); }
+      const t = f.target;
+      if (t === 'player') { tx = player.pos.x; tz = player.pos.z; }
+      else if (t) {
+        tx = t.pos.x; tz = t.pos.z;
+        if (Math.hypot(tx - f.pos.x, tz - f.pos.z) < 0.75) { grab(f, t); return; }
+      } else {
+        const a = time * 0.3 + f.phase; tx = player.pos.x + Math.cos(a) * 9; tz = player.pos.z + Math.sin(a) * 9; spd *= 0.6;
+      }
+      if (pd < 1.15 && player.carrying.length && state === 'playing') {
+        const h = player.carrying.pop();
+        grab(f, h);
+        toast('A fox snatched a hen from your arms', true);
+        return;
+      }
+    } else { // flee: to the nearest edge, or away from the player if scared
+      const l = Math.hypot(f.pos.x, f.pos.z) || 1;
+      let dx = f.pos.x / l, dz = f.pos.z / l;
+      if (f.scared) { const pl = pd || 1; dx = dx * 0.5 - pdx / pl; dz = dz * 0.5 - pdz / pl; spd *= 1.45; turn = 8; }
+      else spd *= f.prey ? 0.9 : 1.1;
+      tx = f.pos.x + dx * 10; tz = f.pos.z + dz * 10;
+      if (Math.max(Math.abs(f.pos.x), Math.abs(f.pos.z)) > W + 7) { despawn(f); return; }
+    }
+
+    let desired = Math.atan2(tx - f.pos.x, tz - f.pos.z);
+    if (f.state === 'hunt') desired += Math.sin(time * 3 + f.phase) * 0.22;
+    if (f.dodge > 0) { f.dodge -= dt; desired += f.dodgeDir * 1.4; }
+    f.heading += clamp(wrap(desired - f.heading), -turn * dt, turn * dt);
+    const px = f.pos.x, pz = f.pos.z;
+    f.pos.x += Math.sin(f.heading) * spd * dt;
+    f.pos.z += Math.cos(f.heading) * spd * dt;
+    collide(f.pos, 0.45);
+    if (state === 'playing' && pd < 0.9) { f.pos.x -= pdx / (pd || 1) * (0.9 - pd); f.pos.z -= pdz / (pd || 1) * (0.9 - pd); }
+    const moved = Math.hypot(f.pos.x - px, f.pos.z - pz);
+    if (moved < spd * dt * 0.3) { f.stuck += dt; if (f.stuck > 0.4) { f.stuck = 0; f.dodge = 0.9; f.dodgeDir = Math.random() < 0.5 ? 1 : -1; } }
+    else f.stuck = Math.max(0, f.stuck - dt);
+
+    f.g.rotation.y = f.heading;
+    f.legT += dt * (4 + spd * 2.6);
+    const sw = Math.sin(f.legT) * 0.75;
+    f.legs[0].rotation.x = sw; f.legs[3].rotation.x = sw;
+    f.legs[1].rotation.x = -sw; f.legs[2].rotation.x = -sw;
+    f.torso.position.y = Math.abs(Math.cos(f.legT)) * 0.06;
+    f.tail.rotation.y = Math.sin(time * 6 + f.phase) * 0.3;
+    f.head.rotation.x = f.scared ? -0.25 : 0.08;
+  }
+
+  // ---------- Player actions ----------
+  function shoo() {
+    if (state !== 'playing' || shooCd > 0) return;
+    shooCd = 0.55; swingT = 0;
+    const fx = -Math.sin(player.yaw), fz = -Math.cos(player.yaw);
+    let hit = 0;
+    for (const f of foxes) {
+      if (f.state === 'gone' || f.scared) continue;
+      const dx = f.pos.x - player.pos.x, dz = f.pos.z - player.pos.z, d = Math.hypot(dx, dz);
+      if (d > 6.5) continue;
+      if (d < 2.2 || (dx * fx + dz * fz) / d > Math.cos(0.95)) { scare(f); hit++; }
+    }
+    puff();
+    sfx.shoo();
+    if (hit) sfx.yelp();
+  }
+
+  const puffGeo = new THREE.RingGeometry(0.35, 0.55, 40);
+  function puff() {
+    const m = new THREE.Mesh(puffGeo, new THREE.MeshBasicMaterial({ color: 0xfff3d6, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false, fog: false }));
+    const fwd = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+    m.position.copy(camera.position).addScaledVector(fwd, 2.0); m.position.y -= 0.25;
+    m.quaternion.copy(camera.quaternion);
+    scene.add(m); puffs.push({ mesh: m, t: 0 });
+  }
+
+  function updatePlayer(dt) {
+    let mx = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + joy.x;
+    let mz = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + joy.y;
+    const ml = Math.hypot(mx, mz); if (ml > 1) { mx /= ml; mz /= ml; }
+    const moving = ml > 0.05;
+    const wantSprint = (keys.ShiftLeft || keys.ShiftRight || Math.hypot(joy.x, joy.y) > 0.95) && moving;
+    const sprint = wantSprint && !player.tired;
+    if (sprint) { player.stamina -= dt * 0.32; if (player.stamina <= 0) { player.stamina = 0; player.tired = true; } }
+    else { player.stamina = Math.min(1, player.stamina + dt * 0.2); if (player.tired && player.stamina > 0.35) player.tired = false; }
+    const speed = sprint ? 11 : 7;
+    const sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
+    const vx = (-sy * mz + cy * mx) * speed, vz = (-cy * mz - sy * mx) * speed;
+    const k = 1 - Math.exp(-12 * dt);
+    player.vel.x += (vx - player.vel.x) * k; player.vel.z += (vz - player.vel.z) * k;
+    player.pos.x += player.vel.x * dt; player.pos.z += player.vel.z * dt;
+    collide(player.pos, 0.45);
+    player.pos.x = clamp(player.pos.x, -W + 0.6, W - 0.6);
+    player.pos.z = clamp(player.pos.z, -W + 0.6, W - 0.6);
+
+    const sp = Math.hypot(player.vel.x, player.vel.z);
+    player.bob += sp * dt * 1.6;
+    const bob = reduceMotion ? 0 : Math.sin(player.bob) * 0.045 * Math.min(sp / 7, 1);
+    camera.position.set(player.pos.x, 1.7 + bob, player.pos.z);
+    camera.rotation.set(player.pitch, player.yaw, 0);
+
+    // pick up hens
+    if (player.carrying.length < CARRY_MAX) {
+      for (const h of hens) {
+        if (h.state !== 'free') continue;
+        if (Math.hypot(h.pos.x - player.pos.x, h.pos.z - player.pos.z) < 1.5) {
+          h.state = 'carried';
+          player.carrying.push(h);
+          hands.add(h.g);
+          sfx.cluck();
+          if (player.carrying.length >= CARRY_MAX) break;
+        }
+      }
+    }
+    player.carrying.forEach((h, i) => {
+      const s = CARRY_SLOTS[i];
+      h.g.position.set(s[0], s[1], s[2]); h.g.rotation.set(0.15, 0.9 - i * 0.3, 0); h.g.scale.setScalar(0.55);
+      h.legs[0].rotation.x = h.legs[1].rotation.x = 0.4;
+    });
+
+    // drop off at the coop
+    if (player.carrying.length && Math.hypot(player.pos.x, player.pos.z) < DROP_R) {
+      const n = player.carrying.length;
+      for (const h of player.carrying) { h.state = 'saved'; detach(h.g); }
+      player.carrying = [];
+      saved += n; savedWave += n;
+      sfx.chime();
+      toast(n === 1 ? 'One hen home safe' : `${n} hens home safe`);
+    }
+
+    // crook swing
+    shooCd = Math.max(0, shooCd - dt);
+    if (swingT < 1) {
+      swingT = Math.min(1, swingT + dt / 0.32);
+      const a = Math.sin(swingT * Math.PI);
+      crook.rotation.x = CROOK_BASE.rx - a * 1.05;
+      crook.rotation.z = CROOK_BASE.rz + a * 0.7;
+      crook.position.x = CROOK_BASE.x - a * 0.28;
+    }
+  }
+
+  function update(dt) {
+    atRisk = 0;
+    for (const h of hens) if (h.state === 'free' || h.state === 'carried' || h.state === 'grabbed') atRisk++;
+    updatePlayer(dt);
+    for (const h of hens) updateHen(h, dt);
+    for (const f of foxes) { updateFox(f, dt); if (state !== 'playing') return; }
+
+    for (let i = puffs.length - 1; i >= 0; i--) {
+      const p = puffs[i]; p.t += dt;
+      p.mesh.scale.setScalar(1 + p.t * 14);
+      p.mesh.material.opacity = 0.55 * Math.max(0, 1 - p.t / 0.35);
+      if (p.t > 0.35) { detach(p.mesh); p.mesh.material.dispose(); puffs.splice(i, 1); }
+    }
+
+    const carrying = player.carrying.length > 0;
+    beam.visible = carrying;
+    dropRing.material.opacity = carrying ? 0.55 + Math.sin(time * 6) * 0.25 : 0.32;
+
+    if (phase === 'wave' && atRisk === 0 && hens.length) endWave();
+    else if (phase === 'break') { breakT -= dt; if (breakT <= 0) startWave(); }
+  }
+
+  function menuUpdate(dt) {
+    const a = time * 0.07;
+    camera.position.set(Math.sin(a) * 15, 4.2, Math.cos(a) * 15);
+    camera.lookAt(0, 1.4, 0);
+    for (const h of hens) {
+      updateHen(h, dt);
+      if (Math.hypot(h.pos.x, h.pos.z) > 13) h.desired = Math.atan2(-h.pos.x, -h.pos.z);
+    }
+  }
+
+  // ---------- HUD ----------
+  const lostPips = $('lostPips');
+  for (let i = 0; i < LOST_LIMIT; i++) lostPips.appendChild(document.createElement('i'));
+  const carryPips = [...$('carryPips').children];
+  const hudCache = {};
+  function setText(id, v) { if (hudCache[id] !== v) { hudCache[id] = v; $(id).textContent = v; } }
+  function hud() {
+    setText('waveN', String(wave));
+    setText('savedN', String(saved));
+    let free = 0; for (const h of hens) if (h.state === 'free') free++;
+    setText('freeN', String(free));
+    setText('lostN', `${lost}/${LOST_LIMIT}`);
+    if (hudCache.lost !== lost) { hudCache.lost = lost; [...lostPips.children].forEach((p, i) => p.classList.toggle('on', i < lost)); }
+    const c = player.carrying.length;
+    if (hudCache.carry !== c) { hudCache.carry = c; carryPips.forEach((p, i) => p.classList.toggle('on', i < c)); }
+    $('stamina').firstChild.style.transform = `scaleX(${player.stamina.toFixed(3)})`;
+    $('stamina').classList.toggle('tired', player.tired);
+  }
+
+  let toastTimer = 0;
+  function toast(msg, bad) {
+    const t = $('toast');
+    t.textContent = msg; t.classList.toggle('bad', !!bad); t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  // Radar
+  const radar = $('radar'), rctx = radar.getContext('2d');
+  let radarSize = 150;
+  function sizeRadar() {
+    radarSize = radar.clientWidth || 150;
+    const d = Math.min(window.devicePixelRatio || 1, 2);
+    radar.width = radarSize * d; radar.height = radarSize * d;
+    rctx.setTransform(d, 0, 0, d, 0, 0);
+  }
+  function drawRadar() {
+    const S = radarSize, R = S / 2, x = rctx, range = 34, k = (R - 8) / range;
+    const sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
+    const tr = (wx, wz) => { const dx = wx - player.pos.x, dz = wz - player.pos.z; return [R + (dx * cy - dz * sy) * k, R + (dx * sy + dz * cy) * k]; };
+    const rim = (p, pad) => { const dx = p[0] - R, dy = p[1] - R, d = Math.hypot(dx, dy), m = R - pad; return d > m ? [R + dx / d * m, R + dy / d * m, true] : [p[0], p[1], false]; };
+
+    x.clearRect(0, 0, S, S);
+    x.save();
+    x.beginPath(); x.arc(R, R, R - 1, 0, Math.PI * 2); x.fillStyle = 'rgba(30,24,19,.8)'; x.fill(); x.clip();
+    x.strokeStyle = 'rgba(247,236,214,.08)'; x.lineWidth = 1;
+    for (const r of [10, 20, 30]) { x.beginPath(); x.arc(R, R, r * k, 0, Math.PI * 2); x.stroke(); }
+
+    const poly = (pts, fill, stroke) => { x.beginPath(); pts.forEach((p, i) => { const q = tr(p[0], p[1]); i ? x.lineTo(q[0], q[1]) : x.moveTo(q[0], q[1]); }); x.closePath(); if (fill) { x.fillStyle = fill; x.fill(); } if (stroke) { x.strokeStyle = stroke; x.stroke(); } };
+    poly([[-W, -W], [W, -W], [W, W], [-W, W]], null, 'rgba(232,181,74,.35)');
+    poly([[-29.2, -26.7], [-18.8, -26.7], [-18.8, -13.3], [-29.2, -13.3]], 'rgba(158,43,37,.75)');
+
+    const c = tr(0, 0);
+    x.setLineDash([3, 3]); x.strokeStyle = 'rgba(232,181,74,.8)';
+    x.beginPath(); x.arc(c[0], c[1], DROP_R * k, 0, Math.PI * 2); x.stroke(); x.setLineDash([]);
+    const cr = rim(c, 7);
+    x.fillStyle = '#e8b54a'; x.fillRect(cr[0] - 4, cr[1] - 4, 8, 8);
+
+    x.fillStyle = '#f7ecd6';
+    for (const h of hens) {
+      if (h.state !== 'free') continue;
+      const p = rim(tr(h.pos.x, h.pos.z), 4);
+      x.globalAlpha = p[2] ? 0.45 : 1;
+      x.beginPath(); x.arc(p[0], p[1], 2.6, 0, Math.PI * 2); x.fill();
+    }
+    x.globalAlpha = 1;
+    for (const f of foxes) {
+      if (f.state === 'gone') continue;
+      const p = rim(tr(f.pos.x, f.pos.z), 6);
+      const a = Math.atan2(Math.sin(f.heading) * cy - Math.cos(f.heading) * sy, Math.sin(f.heading) * sy + Math.cos(f.heading) * cy);
+      x.save(); x.translate(p[0], p[1]); x.rotate(-a + Math.PI);
+      x.globalAlpha = p[2] ? 0.55 : 1;
+      x.fillStyle = f.scared ? '#b98a6a' : '#e0662b';
+      x.beginPath(); x.moveTo(0, -6); x.lineTo(4.5, 4.5); x.lineTo(-4.5, 4.5); x.closePath(); x.fill();
+      if (f.prey) { x.fillStyle = '#f7ecd6'; x.beginPath(); x.arc(0, -6, 2.2, 0, Math.PI * 2); x.fill(); }
+      x.restore();
+    }
+    x.fillStyle = '#e8b54a';
+    x.beginPath(); x.moveTo(R, R - 7); x.lineTo(R + 5, R + 5); x.lineTo(R, R + 2); x.lineTo(R - 5, R + 5); x.closePath(); x.fill();
+    x.restore();
+    x.beginPath(); x.arc(R, R, R - 1, 0, Math.PI * 2); x.strokeStyle = 'rgba(232,181,74,.45)'; x.lineWidth = 1.5; x.stroke();
+  }
+
+  // ---------- Overlay ----------
+  let overlayMode = 'menu';
+  function showOverlay(mode) {
+    overlayMode = mode;
+    $('overlay').hidden = false;
+    $('hud').hidden = mode === 'menu';
+    const stats = $('ovStats');
+    if (mode === 'menu') {
+      $('ovEyebrow').textContent = 'Hollins Farm · Dusk';
+      $('ovTitle').innerHTML = 'Henhouse<br>Panic';
+      $('ovLede').textContent = 'The coop latch has given way and the hens are loose across the paddock. Scoop them up and run them home before the foxes get there first. Every wave brings more foxes, and quicker ones.';
+      stats.hidden = true;
+      $('ovBtn').textContent = 'Start';
+    } else if (mode === 'paused') {
+      $('ovEyebrow').textContent = `Wave ${wave}`;
+      $('ovTitle').textContent = 'Paused';
+      $('ovLede').textContent = 'Hens and foxes are frozen in place until you come back.';
+      stats.hidden = false;
+      $('ovBtn').textContent = 'Resume';
+    } else {
+      $('ovEyebrow').textContent = `Ended on wave ${wave}`;
+      $('ovTitle').textContent = 'The foxes ate well';
+      $('ovLede').textContent = `You brought ${saved} ${saved === 1 ? 'hen' : 'hens'} home before the foxes carried off ${LOST_LIMIT}.`;
+      stats.hidden = false;
+      $('ovBtn').textContent = 'Play again';
+    }
+    $('stSaved').textContent = saved; $('stWave').textContent = wave; $('stBest').textContent = best.saved;
+    $('ovBest').textContent = best.saved ? `Best: ${best.saved} hens home, wave ${best.wave}` : '';
+    setTimeout(() => { try { $('ovBtn').focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 30);
+  }
+
+  function pause() {
+    if (state !== 'playing') return;
+    state = 'paused';
+    for (const k in keys) keys[k] = false;
+    resetJoy();
+    if (document.pointerLockElement) document.exitPointerLock();
+    showOverlay('paused');
+  }
+  function resume() {
+    state = 'playing';
+    $('overlay').hidden = true; $('hud').hidden = false;
+    clock.getDelta();
+    tryLock();
+  }
+  $('ovBtn').addEventListener('click', () => {
+    audioOn();
+    if (overlayMode === 'paused') resume(); else newGame();
+  });
+
+  // ---------- Input ----------
+  const keys = {};
+  addEventListener('keydown', e => {
+    keys[e.code] = true;
+    if (state === 'playing' && (e.code === 'Space' || e.code.startsWith('Arrow'))) e.preventDefault();
+    if (e.code === 'Space' && !e.repeat) shoo();
+    if (e.code === 'KeyM') muted = !muted;
+    if ((e.code === 'KeyP' || e.code === 'Escape') && state === 'playing' && !locked) pause();
+  });
+  addEventListener('keyup', e => { keys[e.code] = false; });
+  addEventListener('blur', () => { for (const k in keys) keys[k] = false; pause(); });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
+
+  function look(dx, dy, mult = 1) {
+    player.yaw -= dx * 0.0023 * mult;
+    player.pitch = clamp(player.pitch - dy * 0.0023 * mult, -1.35, 1.35);
+  }
+
+  let locked = false, lockWorks = false, drag = null;
+  let touchMode = matchMedia('(pointer: coarse)').matches;
+  function tryLock() {
+    if (touchMode || !cvs.requestPointerLock) return;
+    try { const p = cvs.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* pointer lock unavailable: drag to look */ }
+  }
+  document.addEventListener('pointerlockchange', () => {
+    locked = document.pointerLockElement === cvs;
+    if (locked) lockWorks = true;
+    else if (state === 'playing' && lockWorks && !touchMode) pause();
+  });
+  document.addEventListener('pointerlockerror', () => { locked = false; });
+
+  cvs.addEventListener('mousedown', e => {
+    if (state !== 'playing' || e.button !== 0) return;
+    if (locked) { shoo(); return; }
+    drag = { moved: 0 };
+    tryLock();
+  });
+  addEventListener('mousemove', e => {
+    if (state !== 'playing') return;
+    if (locked) look(e.movementX || 0, e.movementY || 0);
+    else if (drag) { look(e.movementX || 0, e.movementY || 0, 1.4); drag.moved += Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0); }
+  });
+  addEventListener('mouseup', () => { if (drag && drag.moved < 6 && state === 'playing' && !locked) shoo(); drag = null; });
+
+  // Touch: left thumb joystick, right thumb look
+  const joy = { x: 0, y: 0, id: null, ox: 0, oy: 0 };
+  const lookT = { id: null, x: 0, y: 0, moved: 0 };
+  const joyBase = $('joyBase'), joyKnob = $('joyKnob');
+  function enableTouch() {
+    if (!touchMode) touchMode = true;
+    $('touchUI').hidden = false;
+    $('keysDesk').hidden = true; $('keysTouch').hidden = false;
+  }
+  function resetJoy() { joy.x = joy.y = 0; joy.id = null; lookT.id = null; joyBase.hidden = true; }
+  if (touchMode) enableTouch();
+
+  cvs.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'touch') return;
+    e.preventDefault();
+    enableTouch();
+    if (state !== 'playing') return;
+    if (e.clientX < innerWidth * 0.45 && joy.id === null) {
+      joy.id = e.pointerId; joy.ox = e.clientX; joy.oy = e.clientY;
+      joyBase.style.left = e.clientX + 'px'; joyBase.style.top = e.clientY + 'px';
+      joyKnob.style.transform = ''; joyBase.hidden = false;
+    } else if (lookT.id === null) {
+      lookT.id = e.pointerId; lookT.x = e.clientX; lookT.y = e.clientY; lookT.moved = 0;
+    }
+  }, { passive: false });
+  addEventListener('pointermove', e => {
+    if (e.pointerType !== 'touch') return;
+    if (e.pointerId === joy.id) {
+      let dx = (e.clientX - joy.ox) / 48, dy = (e.clientY - joy.oy) / 48;
+      const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
+      joy.x = dx; joy.y = -dy;
+      joyKnob.style.transform = `translate(${dx * 34}px, ${dy * 34}px)`;
+    } else if (e.pointerId === lookT.id && state === 'playing') {
+      const dx = e.clientX - lookT.x, dy = e.clientY - lookT.y;
+      look(dx, dy, 1.9); lookT.x = e.clientX; lookT.y = e.clientY; lookT.moved += Math.abs(dx) + Math.abs(dy);
+    }
+  });
+  const endTouch = e => {
+    if (e.pointerType !== 'touch') return;
+    if (e.pointerId === joy.id) { joy.id = null; joy.x = joy.y = 0; joyBase.hidden = true; }
+    if (e.pointerId === lookT.id) { if (lookT.moved < 8 && e.type === 'pointerup') shoo(); lookT.id = null; }
+  };
+  addEventListener('pointerup', endTouch);
+  addEventListener('pointercancel', endTouch);
+  $('shooBtn').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); audioOn(); shoo(); });
+  $('pauseBtn').addEventListener('click', () => pause());
+
+  // ---------- Sound ----------
+  let ac = null, muted = false, noiseBuf = null;
+  function audioOn() {
+    if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+    if (ac && ac.state === 'suspended') ac.resume();
+  }
+  function tone(f0, f1, dur, type = 'square', vol = 0.06, delay = 0) {
+    if (!ac || muted) return;
+    const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t + dur + 0.03);
+  }
+  function noise(dur, vol, freq) {
+    if (!ac || muted) return;
+    if (!noiseBuf) { noiseBuf = ac.createBuffer(1, ac.sampleRate * 0.5, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), t = ac.currentTime;
+    s.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.setValueAtTime(freq, t); f.frequency.exponentialRampToValueAtTime(freq * 2.5, t + dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    s.connect(f); f.connect(g); g.connect(ac.destination); s.start(t); s.stop(t + dur);
+  }
+  const sfx = {
+    cluck() { tone(720, 430, 0.07, 'square', 0.04); tone(680, 400, 0.08, 'square', 0.04, 0.09); },
+    chime() { tone(660, 660, 0.15, 'triangle', 0.07); tone(880, 880, 0.18, 'triangle', 0.07, 0.11); tone(1320, 1320, 0.26, 'triangle', 0.05, 0.22); },
+    shoo() { noise(0.22, 0.16, 600); },
+    yelp() { tone(900, 1600, 0.12, 'sawtooth', 0.04); tone(1500, 700, 0.14, 'sawtooth', 0.035, 0.12); },
+    squawk() { tone(1300, 600, 0.18, 'sawtooth', 0.05); },
+    loss() { tone(320, 140, 0.45, 'triangle', 0.09); }
+  };
+
+  // ---------- Loop ----------
+  const clock = new THREE.Clock();
+  function frame() {
+    requestAnimationFrame(frame);
+    const dt = Math.min(clock.getDelta(), 0.05);
+    if (state === 'playing') { time += dt; update(dt); }
+    else if (state === 'menu') { time += dt; menuUpdate(dt); }
+    sky.position.copy(camera.position);
+    renderer.render(scene, camera);
+    if (state === 'playing') { drawRadar(); hud(); }
+  }
+
+  addEventListener('resize', resize);
+  resize();
+  spawnHens(8);
+  for (const h of hens) h.burst = 0;
+  showOverlay('menu');
+  frame();
+})();
+</script>
